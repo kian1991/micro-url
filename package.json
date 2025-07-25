@@ -1,0 +1,11 @@
+{
+  "name": "micro-url",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "dependencies": {
+    "pino": "^9.7.0",
+    "pino-pretty": "^13.0.0"
+  }
+}
