@@ -4,12 +4,17 @@ import base from 'base-x';
 import { randomBytes } from 'crypto';
 import { logger } from './logger';
 import { redis } from './db';
+import { sl } from 'zod/v4/locales/index.cjs';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const base62 = base(BASE62);
 const RANDOM_BYTE_COUNT = 4;
 
 export function createSlugService(db: RedisClient, baseUrl: string) {
+  // Just to glue together the baseUrl with the slug as its used in multiple locations
+  function constructResolvedUrl(slug: Slug): string {
+    return `${baseUrl}/${slug}`;
+  }
   /**
    * The Slug generation function returns slugs in the Format: 0Ab1c2
    *
@@ -47,9 +52,11 @@ export function createSlugService(db: RedisClient, baseUrl: string) {
   }
 
   async function storeUrl(url: Url): Promise<ShortUrl> {
+    if (!db.isOpen) await db.connect();
     // check for existing url and return the slug if found
     let slug = await db.get(`url:${url}`);
-    if (slug) return slug;
+
+    if (slug) return constructResolvedUrl(slug);
 
     slug = await generateSlug();
 
@@ -76,10 +83,12 @@ export function createSlugService(db: RedisClient, baseUrl: string) {
       }
     }
 
-    return `${baseUrl}/${slug}`;
+    return constructResolvedUrl(slug);
   }
 
   async function resolveSlug(slug: Slug): Promise<Url> {
+    if (!db.isOpen) await db.connect();
+
     const entry = await db.get(`slug:${slug}`);
 
     if (!entry) {

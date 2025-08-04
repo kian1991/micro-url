@@ -4,7 +4,8 @@ import { HTTPException } from 'hono/http-exception';
 import { logger } from './logger';
 
 export const errorMiddleware = (error: Error, c: Context) => {
-  logger.error({ honoContext: c, error });
+  console.log(error);
+  logger.error({ request: c.req, header: c.header, error }, 'Request Error');
 
   // handle httpError
   if (error instanceof HTTPException) {
@@ -14,6 +15,8 @@ export const errorMiddleware = (error: Error, c: Context) => {
   // handle validation error
   if (error instanceof ZodError)
     return c.json({ error: z.treeifyError(error) }, 400);
+
+  // handle Redis Errors
 
   if (error instanceof SyntaxError) {
     // handle syntax error

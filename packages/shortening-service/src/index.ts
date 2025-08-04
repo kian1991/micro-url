@@ -1,11 +1,13 @@
 import { Hono } from 'hono';
 import { healthRouter } from './routes/health';
-import { ENV } from './env';
+import { shortenRouter } from './routes/shorten';
+import { errorMiddleware } from '../../shared/error-middleware';
 
 const app = new Hono();
 
 app.route('/health', healthRouter);
+app.route('/shorten', shortenRouter);
 
-console.log(ENV.REDIS_URL);
+app.onError(errorMiddleware);
 
 export default app;

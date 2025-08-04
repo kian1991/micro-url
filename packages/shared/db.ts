@@ -3,12 +3,13 @@ import { logger } from './logger';
 
 const client = createClient({
   url: process.env.REDIS_URL || 'redis://localhost:6379',
+  socket: {
+    reconnectStrategy: (retries) => new Error("Couldn't connect to database"),
+  },
 });
 
 client.on('error', (err) => {
-  logger.error('Redis Client Error', err);
+  logger.error(err, 'Redis Client Error');
 });
-
-await client.connect();
 
 export const redis = client;
