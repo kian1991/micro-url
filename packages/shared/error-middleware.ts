@@ -2,6 +2,7 @@ import { Context } from 'hono';
 import z, { ZodError } from 'zod';
 import { HTTPException } from 'hono/http-exception';
 import { logger } from './logger';
+import { ERROR_MESSAGES } from './constants';
 
 export const errorMiddleware = (error: Error, c: Context) => {
   console.log(error);
@@ -12,8 +13,13 @@ export const errorMiddleware = (error: Error, c: Context) => {
     return c.json({ error: error.message }, error.status);
   }
 
-  // handle validation error
+  // Handle Slug not found Error
+  if (error.message === ERROR_MESSAGES.SLUG.NOT_FOUND) {
+    return c.json({ error: ERROR_MESSAGES.SLUG.NOT_FOUND }, 404);
+  }
+
   if (error instanceof ZodError)
+    // handle validation error
     return c.json({ error: z.treeifyError(error) }, 400);
 
   // handle Redis Errors

@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import { logger } from './logger';
 import { redis } from './db';
 import { sl } from 'zod/v4/locales/index.cjs';
+import { ERROR_MESSAGES } from './constants';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 const base62 = base(BASE62);
@@ -65,18 +66,15 @@ export function createSlugService(db: RedisClient, baseUrl: string) {
 
     // Very rarely res can be null. Let's be defensive about that. (for example if WATCH is failing)
     if (!res) {
-      logger.fatal(
-        { url, slug },
-        'Unexpected null result from Redis transaction'
-      );
-      throw new Error('Unexpected null result from Redis transaction');
+      logger.fatal({ url, slug }, ERROR_MESSAGES.REDIS.TRANSACTION_NULL);
+      throw new Error(ERROR_MESSAGES.REDIS.TRANSACTION_NULL);
     }
 
     for (const r of res) {
       if (r instanceof Error) {
         logger.error(
           { error: r, url, slug },
-          'Redis transaction contained error'
+          ERROR_MESSAGES.REDIS.TRANSACTION_ERROR
         );
 
         throw r;
@@ -92,8 +90,8 @@ export function createSlugService(db: RedisClient, baseUrl: string) {
     const entry = await db.get(`slug:${slug}`);
 
     if (!entry) {
-      logger.warn({ slug, reason: 'Slug not found in db' });
-      throw new Error('Slug not found');
+      logger.warn({ slug, reason: ERROR_MESSAGES.SLUG.NOT_FOUND });
+      throw new Error(ERROR_MESSAGES.SLUG.NOT_FOUND);
     }
 
     return entry;
