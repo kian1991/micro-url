@@ -17,4 +17,8 @@
   .input:focus {
     outline: 2px solid var(--color-headline);
   }
+
+  .input:user-invalid {
+    outline: 2px solid var(--color-highlight);
+  }
 </style>

@@ -13,6 +13,7 @@ services:
       - --providers.docker=false
       - --providers.file.directory=/etc/traefik/dynamic
       - --entrypoints.web.address=:80
+
     ports:
       - '80:80'
       - '8080:8080' # Dashboard

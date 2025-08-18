@@ -5,13 +5,29 @@ http:
       service: shorten-svc
       entryPoints:
         - web
+      middlewares:
+        - corsHeader
 
     forward:
       rule: "PathRegexp(`^/(.+)$`)"
       service: forward-svc
       entryPoints:
         - web
+      middlewares:
+        - corsHeader
 
+  middlewares:
+    corsHeader:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginListRegex:
+          - "^http://localhost(:[0-9]+)?$"
+        addVaryHeader: true
 
   services:
     shorten-svc:

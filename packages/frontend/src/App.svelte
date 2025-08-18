@@ -2,10 +2,13 @@
   import { onMount } from 'svelte';
   import Input from './components/Input.svelte';
   import Button from './components/Button.svelte';
-  import Logo from './assets/murl.png';
+  import Message from './components/Message.svelte';
+  import { shortenUrl } from './lib/api/shorten-url';
 
   let apiKey = $state('');
   let droppedUrl = $state('');
+  let shortUrlResult = $state('');
+
   const AUTH_ENABLED: boolean =
     import.meta.env.VITE_AUTH_ENABLED === 'true' || false;
 
@@ -19,6 +22,13 @@
   $effect(() => {
     localStorage.setItem('api-key', apiKey);
   });
+
+  const handleShorten = async (e: SubmitEvent) => {
+    e.preventDefault();
+    console.log(`Input: ${droppedUrl}`);
+    const { shortUrl } = await shortenUrl(droppedUrl);
+    shortUrlResult = shortUrl;
+  };
 </script>
 
 <main class="main">
@@ -38,62 +48,26 @@
         get shorter, your life gets easier, and your click-throughs get better.
       </p>
     </div>
-    <div class="input__area">
+    <form onsubmit={handleShorten} class="input__area">
       <h1>Drop-In</h1>
       <Input
-        type="text"
+        type="url"
+        required
         placeholder="https://pretty-long.url/that/loves/to/be/shrinked"
         bind:value={droppedUrl}
       />
       {#if AUTH_ENABLED}
         <Input type="text" placeholder="Enter API Key." bind:value={apiKey} />
       {/if}
-      <Button onclick={() => alert('clicked')}>SHORTEN</Button>
-    </div>
-    <!-- <div style="margin-top: 2rem;">
-      <span class="badge">
-        <Button
-          aria-label="copy button"
-          style="display: flex; gap: 1rem; align-items: center"
-        >
-          <span>https://localhost:3000/aG32Jx</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            style="display: inline;"
-            stroke="currentColor"
-            stroke-width="3"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><rect width="8" height="4" x="8" y="2" rx="1" ry="1"></rect><path
-              d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
-            ></path></svg
-          ></Button
-        >
-      </span>
-    </div> -->
+      <Button type="submit">SHORTEN</Button>
+      {#if shortUrlResult}
+        <Message message={shortUrlResult} style="margin-top: 2rem;"></Message>
+      {/if}
+    </form>
   </div>
 </main>
 
 <style>
-  .badge {
-    font-family: monospace;
-    font-size: 1.4em;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.25rem 1.5rem;
-    border-radius: var(--input-border-radius);
-  }
-
-  .highlight {
-    /* color: var(--color-highlight); */
-  }
-
   .main {
     background-color: var(--color-background);
     min-height: 100vh;
