@@ -5,3 +5,16 @@ services:
       - 6379:6379
     volumes:
       - ./redis-data:/data
+
+  dev-api-gateway:
+    image: traefik:v3.5.0
+    command:
+      - --api.insecure=true
+      - --providers.docker=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.web.address=:80
+    ports:
+      - '80:80'
+      - '8080:8080' # Dashboard
+    volumes:
+      - ./traefik:/etc/traefik

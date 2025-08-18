@@ -1,0 +1,25 @@
+http:
+  routers:
+    shorten:
+      rule: "PathPrefix(`/shorten`)"
+      service: shorten-svc
+      entryPoints:
+        - web
+
+    forward:
+      rule: "PathRegexp(`^/(.+)$`)"
+      service: forward-svc
+      entryPoints:
+        - web
+
+
+  services:
+    shorten-svc:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:3001"
+
+    forward-svc:
+      loadBalancer:
+        servers:
+          - url: "http://host.docker.internal:3002"
