@@ -3,8 +3,6 @@ import { RedisClient, ShortUrl, Slug, Url, UrlEntry } from './types';
 import base from 'base-x';
 import { randomBytes } from 'crypto';
 import { logger } from './logger';
-import { redis } from './db';
-import { sl } from 'zod/v4/locales/index.cjs';
 import { ERROR_MESSAGES } from './constants';
 
 const BASE62 = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -40,7 +38,8 @@ export function createSlugService(db: RedisClient, baseUrl: string) {
    * @returns true if a given slug definitely exists
    */
   async function checkSlug(slug: string): Promise<boolean> {
-    return db.bf.exists('slug-bloom', slug);
+    // return db.bf.exists('slug-bloom', slug); // -- this is not possible in aws elasticache. so we use a normal redis get instead of the bloom filter
+    return Boolean(await db.get(`slug:${slug}`));
   }
 
   async function _storeEntry(entry: UrlEntry): Promise<ReplyUnion[]> {

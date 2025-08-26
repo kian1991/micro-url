@@ -11,7 +11,7 @@ COPY . .
 
 # Install only the relevant workspace and its deps
 # RUN bun install --filter "packages/${SERVICE}"
-RUN bun install
+RUN bun install --production
 
 # Set working directory to the selected service
 WORKDIR /app/packages/${SERVICE}
@@ -32,4 +32,4 @@ ENV NODE_ENV=production
 
 # run the app
 EXPOSE 3000/tcp
-CMD [ "index.js" ]
+CMD [ "bun", "run", "index.js" ]

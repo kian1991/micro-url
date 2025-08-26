@@ -2,6 +2,10 @@ output "vpc_id" {
   value = aws_vpc.this.id
 }
 
-output "alb_dns_name" {
-  value = aws_lb.this.dns_name
+output "public_subnets" {
+  value = aws_subnet.public[*].id
+}
+
+output "private_subnets" {
+  value = aws_subnet.private[*].id
 }

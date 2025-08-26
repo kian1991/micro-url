@@ -11,7 +11,8 @@ export function createRedisMock(overrides = {}) {
   return {
     redis: {
       get: mock(async (key: RedisArgument) => {
-        return key === SLUG_SEQUENCE[1].slug ? TEST_URL : null;
+        if (key === `slug:${SLUG_SEQUENCE[1].slug}`) return TEST_URL;
+        return null;
       }),
       bf: {
         exists: mock(async (_key: RedisArgument, item: RedisArgument) => {

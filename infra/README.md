@@ -18,20 +18,25 @@ modules/
     variables.tf   # Input variables for the network module
     outputs.tf     # Outputs like vpc_id, subnet_ids
 
-alb/
-  main.tf        # Application Load Balancer, listeners, routing rules
-  variables.tf
-  outputs.tf
+  alb/
+    main.tf        # Application Load Balancer, listeners, routing rules
+    variables.tf
+    outputs.tf
 
-ecs-service/
-  main.tf        # ECS task definition + service (including target group binding)
-  variables.tf
-  outputs.tf
+  ecs-service/
+    main.tf        # ECS task definition + service (including target group binding)
+    variables.tf
+    outputs.tf
 
-redis/
-  main.tf        # ElastiCache Redis cluster
-  variables.tf
-  outputs.tf
+  redis/
+    main.tf        # ElastiCache Redis cluster
+    variables.tf
+    outputs.tf
+
+  ecr/
+    main.tf        # ECR repositories for container images
+    variables.tf
+    outputs.tf
 
 ```
 
@@ -59,6 +64,11 @@ redis/
 - Creates an ElastiCache Redis cluster
 - Runs in private subnets for security
 - Outputs: `redis_endpoint`
+
+### `ecr`
+- Creates AWS ECR repositories for storing Docker images
+- Can define lifecycle policies (e.g. keep last 10 images)
+- Outputs: `repository_name`, `repository_url`
 
 
 

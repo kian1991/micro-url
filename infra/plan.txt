@@ -1,0 +1,243 @@
+[0m[1mmodule.network.data.aws_availability_zones.available: Reading...[0m[0m
+[0m[1maws_ecs_cluster.this: Refreshing state... [id=arn:aws:ecs:eu-central-1:877525430326:cluster/micro-url-cluster][0m
+[0m[1mmodule.ecr_forwarding.aws_ecr_repository.this: Refreshing state... [id=forwarding][0m
+[0m[1mmodule.ecs_shortening_service.aws_cloudwatch_log_group.this: Refreshing state... [id=/ecs/shortening][0m
+[0m[1mmodule.network.aws_vpc.this: Refreshing state... [id=vpc-06174496143a27dd9][0m
+[0m[1mmodule.ecs_forwarding_service.aws_cloudwatch_log_group.this: Refreshing state... [id=/ecs/forwarding][0m
+[0m[1maws_iam_role.ecs_execution: Refreshing state... [id=ecsTaskExecutionRole][0m
+[0m[1mmodule.network.aws_eip.nat: Refreshing state... [id=eipalloc-0f5da742785de58ef][0m
+[0m[1mmodule.ecr_shortening.aws_ecr_repository.this: Refreshing state... [id=shortening][0m
+[0m[1mmodule.network.data.aws_availability_zones.available: Read complete after 1s [id=eu-central-1][0m
+[0m[1mmodule.ecr_shortening.aws_ecr_lifecycle_policy.this: Refreshing state... [id=shortening][0m
+[0m[1mmodule.ecr_forwarding.aws_ecr_lifecycle_policy.this: Refreshing state... [id=forwarding][0m
+[0m[1maws_iam_role_policy_attachment.ecs_execution_policy: Refreshing state... [id=ecsTaskExecutionRole/arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy][0m
+[0m[1mmodule.network.aws_internet_gateway.this: Refreshing state... [id=igw-0526a8ba9f2cd4592][0m
+[0m[1mmodule.network.aws_subnet.private[0]: Refreshing state... [id=subnet-0106df76f2d6abb7c][0m
+[0m[1mmodule.network.aws_subnet.private[1]: Refreshing state... [id=subnet-07ddc0b61fea7966b][0m
+[0m[1mmodule.network.aws_subnet.public[0]: Refreshing state... [id=subnet-08bcc2bc9f10b8a36][0m
+[0m[1mmodule.network.aws_subnet.public[1]: Refreshing state... [id=subnet-0c6ebb7bbdbdc85f5][0m
+[0m[1mmodule.alb.aws_security_group.public-http-alb: Refreshing state... [id=sg-0e9ffaa38ea2b24b8][0m
+[0m[1mmodule.ecs_shortening_service.aws_lb_target_group.this: Refreshing state... [id=arn:aws:elasticloadbalancing:eu-central-1:877525430326:targetgroup/shortening-tg/e8b94bdd943f7be9][0m
+[0m[1mmodule.ecs_forwarding_service.aws_lb_target_group.this: Refreshing state... [id=arn:aws:elasticloadbalancing:eu-central-1:877525430326:targetgroup/forwarding-tg/455849e7da1a89f0][0m
+[0m[1mmodule.network.aws_route_table.public: Refreshing state... [id=rtb-07498264357c6c8eb][0m
+[0m[1mmodule.network.aws_nat_gateway.this: Refreshing state... [id=nat-042c651421a26c9ec][0m
+[0m[1mmodule.network.aws_route_table_association.public[0]: Refreshing state... [id=rtbassoc-01223666d81d20221][0m
+[0m[1mmodule.network.aws_route_table_association.public[1]: Refreshing state... [id=rtbassoc-0b3dc8afbb865ba67][0m
+[0m[1mmodule.alb.aws_lb.this: Refreshing state... [id=arn:aws:elasticloadbalancing:eu-central-1:877525430326:loadbalancer/app/micro-url-alb/2a8ca762115bb6f8][0m
+[0m[1mmodule.network.aws_route_table.private: Refreshing state... [id=rtb-06ad6bac6ef970ee3][0m
+[0m[1mmodule.network.aws_route_table_association.private[1]: Refreshing state... [id=rtbassoc-00c9f938202ca2066][0m
+[0m[1mmodule.network.aws_route_table_association.private[0]: Refreshing state... [id=rtbassoc-0bd77fd935bbbdd76][0m
+[0m[1mmodule.ecs_shortening_service.aws_ecs_task_definition.this: Refreshing state... [id=shortening][0m
+[0m[1mmodule.ecs_forwarding_service.aws_ecs_task_definition.this: Refreshing state... [id=forwarding][0m
+[0m[1maws_lb_listener.this: Refreshing state... [id=arn:aws:elasticloadbalancing:eu-central-1:877525430326:listener/app/micro-url-alb/2a8ca762115bb6f8/fafd8500addda942][0m
+[0m[1mmodule.ecs_shortening_service.aws_ecs_service.this: Refreshing state... [id=arn:aws:ecs:eu-central-1:877525430326:service/micro-url-cluster/shortening-ecs-service][0m
+[0m[1mmodule.ecs_forwarding_service.aws_ecs_service.this: Refreshing state... [id=arn:aws:ecs:eu-central-1:877525430326:service/micro-url-cluster/forwarding-ecs-service][0m
+[0m[1maws_lb_listener_rule.shortening: Refreshing state... [id=arn:aws:elasticloadbalancing:eu-central-1:877525430326:listener-rule/app/micro-url-alb/2a8ca762115bb6f8/fafd8500addda942/5d4cffca2ca71298][0m
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  [32m+[0m create[0m
+  [33m~[0m update in-place[0m
+[31m-[0m/[32m+[0m destroy and then create replacement[0m
+
+Terraform will perform the following actions:
+
+[1m  # module.ecs_forwarding_service.aws_ecs_service.this[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_ecs_service" "this" {
+        id                                 = "arn:aws:ecs:eu-central-1:877525430326:service/micro-url-cluster/forwarding-ecs-service"
+        name                               = "forwarding-ecs-service"
+        tags                               = {}
+      [33m~[0m[0m task_definition                    = "arn:aws:ecs:eu-central-1:877525430326:task-definition/forwarding:1" -> (known after apply)
+        [90m# (18 unchanged attributes hidden)[0m[0m
+
+        [90m# (4 unchanged blocks hidden)[0m[0m
+    }
+
+[1m  # module.ecs_forwarding_service.aws_ecs_task_definition.this[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "aws_ecs_task_definition" "this" {
+      [33m~[0m[0m arn                      = "arn:aws:ecs:eu-central-1:877525430326:task-definition/forwarding:1" -> (known after apply)
+      [33m~[0m[0m arn_without_revision     = "arn:aws:ecs:eu-central-1:877525430326:task-definition/forwarding" -> (known after apply)
+      [33m~[0m[0m container_definitions    = jsonencode(
+            [
+              [31m-[0m[0m {
+                  [31m-[0m[0m environment      = []
+                  [31m-[0m[0m essential        = true
+                  [31m-[0m[0m image            = "877525430326.dkr.ecr.eu-central-1.amazonaws.com/forwarding:latest"
+                  [31m-[0m[0m logConfiguration = {
+                      [31m-[0m[0m logDriver = "awslogs"
+                      [31m-[0m[0m options   = {
+                          [31m-[0m[0m awslogs-group         = "/ecs/forwarding"
+                          [31m-[0m[0m awslogs-region        = "eu-central-1"
+                          [31m-[0m[0m awslogs-stream-prefix = "ecs"
+                        }
+                    }
+                  [31m-[0m[0m mountPoints      = []
+                  [31m-[0m[0m name             = "forwarding"
+                  [31m-[0m[0m portMappings     = [
+                      [31m-[0m[0m {
+                          [31m-[0m[0m containerPort = 3000
+                          [31m-[0m[0m hostPort      = 3000
+                          [31m-[0m[0m protocol      = "tcp"
+                        },
+                    ]
+                  [31m-[0m[0m systemControls   = []
+                  [31m-[0m[0m volumesFrom      = []
+                },
+            ]
+        ) -> (known after apply) [31m# forces replacement[0m[0m
+      [33m~[0m[0m enable_fault_injection   = false -> (known after apply)
+      [33m~[0m[0m id                       = "forwarding" -> (known after apply)
+      [33m~[0m[0m revision                 = 1 -> (known after apply)
+      [31m-[0m[0m tags                     = {} [90m-> null[0m[0m
+      [33m~[0m[0m tags_all                 = {} -> (known after apply)
+        [90m# (12 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # module.ecs_shortening_service.aws_ecs_service.this[0m will be updated in-place
+[0m  [33m~[0m[0m resource "aws_ecs_service" "this" {
+        id                                 = "arn:aws:ecs:eu-central-1:877525430326:service/micro-url-cluster/shortening-ecs-service"
+        name                               = "shortening-ecs-service"
+        tags                               = {}
+      [33m~[0m[0m task_definition                    = "arn:aws:ecs:eu-central-1:877525430326:task-definition/shortening:1" -> (known after apply)
+        [90m# (18 unchanged attributes hidden)[0m[0m
+
+        [90m# (4 unchanged blocks hidden)[0m[0m
+    }
+
+[1m  # module.ecs_shortening_service.aws_ecs_task_definition.this[0m must be [1m[31mreplaced[0m
+[0m[31m-[0m/[32m+[0m[0m resource "aws_ecs_task_definition" "this" {
+      [33m~[0m[0m arn                      = "arn:aws:ecs:eu-central-1:877525430326:task-definition/shortening:1" -> (known after apply)
+      [33m~[0m[0m arn_without_revision     = "arn:aws:ecs:eu-central-1:877525430326:task-definition/shortening" -> (known after apply)
+      [33m~[0m[0m container_definitions    = jsonencode(
+            [
+              [31m-[0m[0m {
+                  [31m-[0m[0m environment      = []
+                  [31m-[0m[0m essential        = true
+                  [31m-[0m[0m image            = "877525430326.dkr.ecr.eu-central-1.amazonaws.com/shortening:latest"
+                  [31m-[0m[0m logConfiguration = {
+                      [31m-[0m[0m logDriver = "awslogs"
+                      [31m-[0m[0m options   = {
+                          [31m-[0m[0m awslogs-group         = "/ecs/shortening"
+                          [31m-[0m[0m awslogs-region        = "eu-central-1"
+                          [31m-[0m[0m awslogs-stream-prefix = "ecs"
+                        }
+                    }
+                  [31m-[0m[0m mountPoints      = []
+                  [31m-[0m[0m name             = "shortening"
+                  [31m-[0m[0m portMappings     = [
+                      [31m-[0m[0m {
+                          [31m-[0m[0m containerPort = 3000
+                          [31m-[0m[0m hostPort      = 3000
+                          [31m-[0m[0m protocol      = "tcp"
+                        },
+                    ]
+                  [31m-[0m[0m systemControls   = []
+                  [31m-[0m[0m volumesFrom      = []
+                },
+            ]
+        ) -> (known after apply) [31m# forces replacement[0m[0m
+      [33m~[0m[0m enable_fault_injection   = false -> (known after apply)
+      [33m~[0m[0m id                       = "shortening" -> (known after apply)
+      [33m~[0m[0m revision                 = 1 -> (known after apply)
+      [31m-[0m[0m tags                     = {} [90m-> null[0m[0m
+      [33m~[0m[0m tags_all                 = {} -> (known after apply)
+        [90m# (12 unchanged attributes hidden)[0m[0m
+    }
+
+[1m  # module.redis.aws_elasticache_cluster.redis[0m will be created
+[0m  [32m+[0m[0m resource "aws_elasticache_cluster" "redis" {
+      [32m+[0m[0m apply_immediately          = (known after apply)
+      [32m+[0m[0m arn                        = (known after apply)
+      [32m+[0m[0m auto_minor_version_upgrade = "true"
+      [32m+[0m[0m availability_zone          = (known after apply)
+      [32m+[0m[0m az_mode                    = (known after apply)
+      [32m+[0m[0m cache_nodes                = (known after apply)
+      [32m+[0m[0m cluster_address            = (known after apply)
+      [32m+[0m[0m cluster_id                 = "micro-url-redis"
+      [32m+[0m[0m configuration_endpoint     = (known after apply)
+      [32m+[0m[0m engine                     = "redis"
+      [32m+[0m[0m engine_version             = (known after apply)
+      [32m+[0m[0m engine_version_actual      = (known after apply)
+      [32m+[0m[0m id                         = (known after apply)
+      [32m+[0m[0m ip_discovery               = (known after apply)
+      [32m+[0m[0m maintenance_window         = (known after apply)
+      [32m+[0m[0m network_type               = (known after apply)
+      [32m+[0m[0m node_type                  = "cache.t3.micro"
+      [32m+[0m[0m num_cache_nodes            = 1
+      [32m+[0m[0m parameter_group_name       = "default.redis7"
+      [32m+[0m[0m port                       = (known after apply)
+      [32m+[0m[0m preferred_outpost_arn      = (known after apply)
+      [32m+[0m[0m region                     = "eu-central-1"
+      [32m+[0m[0m replication_group_id       = (known after apply)
+      [32m+[0m[0m security_group_ids         = (known after apply)
+      [32m+[0m[0m snapshot_window            = (known after apply)
+      [32m+[0m[0m subnet_group_name          = "redis-subnet-group"
+      [32m+[0m[0m tags_all                   = (known after apply)
+      [32m+[0m[0m transit_encryption_enabled = (known after apply)
+    }
+
+[1m  # module.redis.aws_elasticache_subnet_group.redis[0m will be created
+[0m  [32m+[0m[0m resource "aws_elasticache_subnet_group" "redis" {
+      [32m+[0m[0m arn         = (known after apply)
+      [32m+[0m[0m description = "Managed by Terraform"
+      [32m+[0m[0m id          = (known after apply)
+      [32m+[0m[0m name        = "redis-subnet-group"
+      [32m+[0m[0m region      = "eu-central-1"
+      [32m+[0m[0m subnet_ids  = [
+          [32m+[0m[0m "subnet-0106df76f2d6abb7c",
+          [32m+[0m[0m "subnet-07ddc0b61fea7966b",
+        ]
+      [32m+[0m[0m tags_all    = (known after apply)
+      [32m+[0m[0m vpc_id      = (known after apply)
+    }
+
+[1m  # module.redis.aws_security_group.redis[0m will be created
+[0m  [32m+[0m[0m resource "aws_security_group" "redis" {
+      [32m+[0m[0m arn                    = (known after apply)
+      [32m+[0m[0m description            = "Allow ECS tasks to access Redis"
+      [32m+[0m[0m egress                 = [
+          [32m+[0m[0m {
+              [32m+[0m[0m cidr_blocks      = [
+                  [32m+[0m[0m "0.0.0.0/0",
+                ]
+              [32m+[0m[0m from_port        = 0
+              [32m+[0m[0m ipv6_cidr_blocks = []
+              [32m+[0m[0m prefix_list_ids  = []
+              [32m+[0m[0m protocol         = "-1"
+              [32m+[0m[0m security_groups  = []
+              [32m+[0m[0m self             = false
+              [32m+[0m[0m to_port          = 0
+                [90m# (1 unchanged attribute hidden)[0m[0m
+            },
+        ]
+      [32m+[0m[0m id                     = (known after apply)
+      [32m+[0m[0m ingress                = [
+          [32m+[0m[0m {
+              [32m+[0m[0m cidr_blocks      = []
+              [32m+[0m[0m from_port        = 6379
+              [32m+[0m[0m ipv6_cidr_blocks = []
+              [32m+[0m[0m prefix_list_ids  = []
+              [32m+[0m[0m protocol         = "tcp"
+              [32m+[0m[0m security_groups  = [
+                  [32m+[0m[0m "sg-0e9ffaa38ea2b24b8",
+                ]
+              [32m+[0m[0m self             = false
+              [32m+[0m[0m to_port          = 6379
+                [90m# (1 unchanged attribute hidden)[0m[0m
+            },
+        ]
+      [32m+[0m[0m name                   = "redis-sg"
+      [32m+[0m[0m name_prefix            = (known after apply)
+      [32m+[0m[0m owner_id               = (known after apply)
+      [32m+[0m[0m region                 = "eu-central-1"
+      [32m+[0m[0m revoke_rules_on_delete = false
+      [32m+[0m[0m tags_all               = (known after apply)
+      [32m+[0m[0m vpc_id                 = "vpc-06174496143a27dd9"
+    }
+
+[1mPlan:[0m 5 to add, 2 to change, 2 to destroy.
+[0m[90m
+─────────────────────────────────────────────────────────────────────────────[0m
+
+Note: You didn't use the -out option to save this plan, so Terraform can't
+guarantee to take exactly these actions if you run "terraform apply" now.
