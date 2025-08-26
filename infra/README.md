@@ -3,6 +3,28 @@
 This directory contains the Terraform configuration for the **Micro-URL** project.  
 The structure is fully modular so that individual components can be developed, reused, and maintained independently.
 
+## SSL 
+SSL certificates are managed through AWS Certificate Manager (ACM) to ensure secure communication over HTTPS.  
+The certificates cover both the root domain and its subdomains using a wildcard certificate. The provisioning process involves requesting certificates in ACM, validating domain ownership via DNS, and then attaching the validated certificates to the Application Load Balancer (ALB) within the Terraform configuration.
+
+### Manual Steps to Request and Validate ACM Certificates:
+
+1. **Request Certificates:**
+   - Log in to the AWS Management Console and navigate to ACM.
+   - Request a public certificate for your root domain (e.g., `example.com`) and a wildcard domain (e.g., `*.example.com`).
+   - Choose DNS validation as the method for proving domain ownership.
+
+2. **Validate Domain Ownership:**
+   - After requesting the certificates, ACM will provide DNS CNAME records.
+   - Add these CNAME records to your domain’s DNS configuration.
+   - Wait for ACM to validate the records automatically; this may take some time.
+
+3. **Attach Certificates to ALB in Terraform:**
+   - Once the certificates are issued, note their ARN values.
+   - In the Terraform `alb` module, update the listener configuration to reference the ACM certificate ARNs.
+   - Apply the Terraform changes to attach the certificates to the ALB listeners, enabling HTTPS traffic.
+
+Following these steps ensures secure, trusted SSL/TLS encryption for your Micro-URL services.
 
 ## Structure
 ```

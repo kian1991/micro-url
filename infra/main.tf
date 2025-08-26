@@ -18,6 +18,11 @@ provider "aws" {
 # -------------------------------------------------------------------
 # Global resources
 # -------------------------------------------------------------------
+locals {
+  base_url = "https://${var.domain}"
+  port     = 3000
+}
+
 resource "aws_ecs_cluster" "this" {
   name = "micro-url-cluster"
 
@@ -79,7 +84,7 @@ module "ecr_forwarding" {
 # ECS Services (Shortening, Forwarding)
 module "ecs_shortening_service" {
   source                 = "./modules/ecs-services"
-  container_port         = 3000
+  container_port         = local.port
   image                  = "${module.ecr_shortening.repository_url}:latest"
   region                 = var.aws_region
   ecs_cluster_id         = aws_ecs_cluster.this.id
@@ -90,8 +95,8 @@ module "ecs_shortening_service" {
   ecs_execution_role_arn = aws_iam_role.ecs_execution.arn
   environment = {
     REDIS_URL = "redis://${module.redis.redis_endpoint}"
-    BASE_URL  = "http://${module.alb.alb_dns_name}"
-    PORT      = "3000"
+    BASE_URL  = local.base_url
+    PORT      = tostring(local.port)
   }
 }
 
@@ -99,7 +104,7 @@ module "ecs_shortening_service" {
 
 module "ecs_forwarding_service" {
   source                 = "./modules/ecs-services"
-  container_port         = 3000
+  container_port         = local.port
   image                  = "${module.ecr_forwarding.repository_url}:latest"
   region                 = var.aws_region
   ecs_cluster_id         = aws_ecs_cluster.this.id
@@ -110,8 +115,8 @@ module "ecs_forwarding_service" {
   ecs_execution_role_arn = aws_iam_role.ecs_execution.arn
   environment = {
     REDIS_URL = "redis://${module.redis.redis_endpoint}"
-    BASE_URL  = "http://${module.alb.alb_dns_name}"
-    PORT      = "3000"
+    BASE_URL  = local.base_url
+    PORT      = tostring(local.port)
   }
 }
 
@@ -128,11 +133,20 @@ module "redis" {
 }
 
 # ALB Listener & Listener Rules
-# Use the forward service as match-all route as default (will resolve /[slug] later)
-resource "aws_lb_listener" "this" {
+# ACM Certificate (must be validated first)
+data "aws_acm_certificate" "this" {
+  domain      = var.domain
+  statuses    = ["ISSUED"]
+  most_recent = true
+}
+
+# HTTPS Listener on ALB
+resource "aws_lb_listener" "https" {
   load_balancer_arn = module.alb.load_balancer_arn
-  port              = 80
-  protocol          = "HTTP"
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = data.aws_acm_certificate.this.arn
 
   default_action {
     type             = "forward"
@@ -140,15 +154,74 @@ resource "aws_lb_listener" "this" {
   }
 }
 
+# Use the forward service as match-all route as default (will resolve /[slug] later)
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = module.alb.load_balancer_arn
+  port              = 80
+  protocol          = "HTTP"
 
-# the shortening endpoint
-resource "aws_lb_listener_rule" "shortening" {
-  listener_arn = aws_lb_listener.this.arn
-  priority     = 100
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+}
+
+# Rule: API Subdomain -> Shortening Service
+resource "aws_lb_listener_rule" "api_shortening" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 10
 
   action {
     type             = "forward"
     target_group_arn = module.ecs_shortening_service.target_group_arn
+  }
+
+  condition {
+    host_header {
+      values = ["api.murl.pw"]
+    }
+  }
+}
+
+# Rule: Root path "/" -> Frontend
+# resource "aws_lb_listener_rule" "frontend_root" {
+#   listener_arn = aws_lb_listener.https.arn
+#   priority     = 20
+
+#   action {
+#     type             = "forward"
+#     target_group_arn = module.ecs_frontend_service.target_group_arn
+#   }
+
+#   condition {
+#     host_header {
+#       values = ["murl.pw"]
+#     }
+#     path_pattern {
+#       values = ["/"]
+#     }
+#   }
+# }
+
+# Rule: Shortening API unter murl.pw/shorten -> Shortening Service
+resource "aws_lb_listener_rule" "shortening_root" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 30
+
+  action {
+    type             = "forward"
+    target_group_arn = module.ecs_shortening_service.target_group_arn
+  }
+
+  condition {
+    host_header {
+      values = ["murl.pw"]
+    }
   }
 
   condition {
@@ -157,6 +230,30 @@ resource "aws_lb_listener_rule" "shortening" {
     }
   }
 }
+
+# Rule: Slugs (ie everything else) -> Forwarding Service
+resource "aws_lb_listener_rule" "forwarding_slugs" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 40
+
+  action {
+    type             = "forward"
+    target_group_arn = module.ecs_forwarding_service.target_group_arn
+  }
+
+  condition {
+    host_header {
+      values = ["murl.pw"]
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/*"]
+    }
+  }
+}
+
 
 ##! If you add more endpoints in the future e.g. /analytics etc. they should be here
 

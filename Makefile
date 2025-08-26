@@ -28,7 +28,6 @@ deploy-all:
 		docker buildx build \
 			--platform linux/amd64 \
 			--build-arg SERVICE=$$s-service \
-			--no-cache \
 			-t $$s-service:latest .; \
 		docker tag $$s-service:latest $(ECR_URL)/$$s:latest; \
 		docker push $(ECR_URL)/$$s:latest; \
