@@ -1,8 +1,8 @@
 import { Context } from 'hono';
 import z, { ZodError } from 'zod';
 import { HTTPException } from 'hono/http-exception';
-import { logger } from './logger';
-import { ERROR_MESSAGES } from './constants';
+import { logger } from '../logger';
+import { ERROR_MESSAGES } from '../constants';
 
 export const errorMiddleware = (error: Error, c: Context) => {
   console.log(error);

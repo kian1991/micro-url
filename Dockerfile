@@ -11,7 +11,7 @@ COPY . .
 
 # Install only the relevant workspace and its deps
 # RUN bun install --filter "packages/${SERVICE}"
-RUN bun install --production
+RUN bun install --no-check
 
 # Set working directory to the selected service
 WORKDIR /app/packages/${SERVICE}

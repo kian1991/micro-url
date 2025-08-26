@@ -28,6 +28,7 @@ deploy-all:
 		docker buildx build \
 			--platform linux/amd64 \
 			--build-arg SERVICE=$$s-service \
+			--no-cache \
 			-t $$s-service:latest .; \
 		docker tag $$s-service:latest $(ECR_URL)/$$s:latest; \
 		docker push $(ECR_URL)/$$s:latest; \
@@ -37,3 +38,7 @@ deploy-all:
 force-aws-redeploy:
 	aws ecs update-service --cluster micro-url-cluster --service forwarding-ecs-service --force-new-deployment
 	aws ecs update-service --cluster micro-url-cluster --service shortening-ecs-service --force-new-deployment
+
+# Connect docker to AWS ECR
+ecr-login:
+	aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $(ECR_URL)
