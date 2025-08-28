@@ -15,12 +15,24 @@ provider "aws" {
   region = var.aws_region
 }
 
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
+
 # -------------------------------------------------------------------
 # Global resources
 # -------------------------------------------------------------------
 locals {
   base_url = "https://${var.domain}"
   port     = 3000
+}
+
+data "aws_acm_certificate" "cf_cert" {
+  provider    = aws.us-east-1
+  domain      = var.domain
+  statuses    = ["ISSUED"]
+  most_recent = true
 }
 
 resource "aws_ecs_cluster" "this" {
@@ -70,6 +82,156 @@ module "alb" {
   public_subnets = module.network.public_subnets
 }
 
+# IAM Role for Amplify
+resource "aws_iam_role" "amplify_service" {
+  name = "amplifyServiceRole"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action = "sts:AssumeRole",
+      Effect = "Allow",
+      Principal = {
+        Service = "amplify.amazonaws.com"
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "amplify_service_policy" {
+  role       = aws_iam_role.amplify_service.name
+  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
+}
+
+# Frontend (Amplify)
+resource "aws_amplify_app" "frontend" {
+  name                 = "micro-url-frontend"
+  repository           = var.repository_url
+  platform             = "WEB"
+  oauth_token          = var.github_token
+  iam_service_role_arn = aws_iam_role.amplify_service.arn
+  build_spec           = <<EOT
+version: 1
+applications:
+  - frontend:
+      phases:
+        preBuild:
+          commands:
+            - cd packages/frontend
+            - npm install
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: packages/frontend/dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - node_modules/**/*
+EOT
+}
+
+resource "aws_amplify_branch" "main" {
+  app_id            = aws_amplify_app.frontend.id
+  branch_name       = "main"
+  enable_auto_build = true
+}
+
+
+
+# CloudFront Distribution (for Amplify + ALB Routing + SSL)
+resource "aws_cloudfront_distribution" "this" {
+  enabled             = true
+  default_root_object = "index.html"
+
+  aliases = [var.domain] # murl.pw
+
+  restrictions {
+    geo_restriction {
+      restriction_type = "none"
+    }
+  }
+
+  origin {
+    domain_name = aws_amplify_app.frontend.default_domain
+    origin_id   = "amplify-origin"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 443
+      origin_protocol_policy = "https-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  origin {
+    domain_name = module.alb.alb_dns_name
+    origin_id   = "alb-origin"
+
+    custom_origin_config {
+      http_port              = 80
+      https_port             = 80
+      origin_protocol_policy = "http-only"
+      origin_ssl_protocols   = ["TLSv1.2"]
+    }
+  }
+
+  default_cache_behavior {
+    target_origin_id       = "amplify-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["HEAD", "GET", "OPTIONS"]
+    cached_methods  = ["HEAD", "GET"]
+    forwarded_values {
+      query_string = false
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/shorten*"
+    target_origin_id       = "alb-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
+    cached_methods  = ["HEAD", "GET", ]
+    forwarded_values {
+      query_string = true
+      cookies {
+        forward = "all"
+      }
+    }
+  }
+
+  ordered_cache_behavior {
+    path_pattern           = "/*"
+    target_origin_id       = "alb-origin"
+    viewer_protocol_policy = "redirect-to-https"
+
+    allowed_methods = ["HEAD", "GET"]
+    cached_methods  = ["HEAD", "GET"]
+    forwarded_values {
+      query_string = true
+      cookies {
+        forward = "none"
+      }
+    }
+  }
+
+  price_class = "PriceClass_100"
+
+  viewer_certificate {
+    acm_certificate_arn      = data.aws_acm_certificate.cf_cert.arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+}
+
+
+
 # ECR Repositories
 module "ecr_shortening" {
   source    = "./modules/ecr"
@@ -99,8 +261,6 @@ module "ecs_shortening_service" {
     PORT      = tostring(local.port)
   }
 }
-
-
 
 module "ecs_forwarding_service" {
   source                 = "./modules/ecs-services"
@@ -133,26 +293,6 @@ module "redis" {
 }
 
 # ALB Listener & Listener Rules
-# ACM Certificate (must be validated first)
-data "aws_acm_certificate" "this" {
-  domain      = var.domain
-  statuses    = ["ISSUED"]
-  most_recent = true
-}
-
-# HTTPS Listener on ALB
-resource "aws_lb_listener" "https" {
-  load_balancer_arn = module.alb.load_balancer_arn
-  port              = 443
-  protocol          = "HTTPS"
-  ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = data.aws_acm_certificate.this.arn
-
-  default_action {
-    type             = "forward"
-    target_group_arn = module.ecs_forwarding_service.target_group_arn
-  }
-}
 
 # Use the forward service as match-all route as default (will resolve /[slug] later)
 resource "aws_lb_listener" "http" {
@@ -160,68 +300,21 @@ resource "aws_lb_listener" "http" {
   port              = 80
   protocol          = "HTTP"
 
+  # Default: Slugs (ie /abc123) -> Forwarding Service
   default_action {
-    type = "redirect"
-
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
-  }
-}
-
-# Rule: API Subdomain -> Shortening Service
-resource "aws_lb_listener_rule" "api_shortening" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 10
-
-  action {
     type             = "forward"
-    target_group_arn = module.ecs_shortening_service.target_group_arn
-  }
-
-  condition {
-    host_header {
-      values = ["api.murl.pw"]
-    }
+    target_group_arn = module.ecs_forwarding_service.target_group_arn
   }
 }
-
-# Rule: Root path "/" -> Frontend
-# resource "aws_lb_listener_rule" "frontend_root" {
-#   listener_arn = aws_lb_listener.https.arn
-#   priority     = 20
-
-#   action {
-#     type             = "forward"
-#     target_group_arn = module.ecs_frontend_service.target_group_arn
-#   }
-
-#   condition {
-#     host_header {
-#       values = ["murl.pw"]
-#     }
-#     path_pattern {
-#       values = ["/"]
-#     }
-#   }
-# }
 
 # Rule: Shortening API unter murl.pw/shorten -> Shortening Service
 resource "aws_lb_listener_rule" "shortening_root" {
-  listener_arn = aws_lb_listener.https.arn
+  listener_arn = aws_lb_listener.http.arn
   priority     = 30
 
   action {
     type             = "forward"
     target_group_arn = module.ecs_shortening_service.target_group_arn
-  }
-
-  condition {
-    host_header {
-      values = ["murl.pw"]
-    }
   }
 
   condition {
@@ -231,28 +324,7 @@ resource "aws_lb_listener_rule" "shortening_root" {
   }
 }
 
-# Rule: Slugs (ie everything else) -> Forwarding Service
-resource "aws_lb_listener_rule" "forwarding_slugs" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 40
 
-  action {
-    type             = "forward"
-    target_group_arn = module.ecs_forwarding_service.target_group_arn
-  }
-
-  condition {
-    host_header {
-      values = ["murl.pw"]
-    }
-  }
-
-  condition {
-    path_pattern {
-      values = ["/*"]
-    }
-  }
-}
 
 
 ##! If you add more endpoints in the future e.g. /analytics etc. they should be here
