@@ -36,18 +36,43 @@
     <div class="hero">
       <span class="logo">xoxo Murl</span>
 
-      <h1 class="header">
-        M<span style="font-size: .8em; font-weight:400">icro</span> URL
-      </h1>
-      <p>
-        Big links are like that one friend who tells a five-minute story in
-        twenty — nobody’s got time for that. Micro URL takes your endless, ugly
-        links and transforms them into sleek, memorable shortcuts that are easy
-        to share anywhere. Whether you’re sending a client a polished document
-        link, sharing an invite on social media, or just trying to keep things
-        neat, Micro URL makes it quick, effortless, and professional. Your links
-        get shorter, your life gets easier, and your click-throughs get better.
-      </p>
+      <h1 class="header" style="font-family: 'Ephesis'">Micro url</h1>
+      <div>
+        The real story behind this project is not the button or the short links
+        you see. It lies in the architecture that powers it.
+        <br />
+
+        What looks like a minimal app is actually backed by:
+        <ul>
+          <li>Edge routing with CloudFront and Lambda@Edge</li>
+          <li>
+            CI/CD Pipelines with automated tests and deployments using GitHub
+            Actions
+          </li>
+          <li>
+            Horizontally scalable ECS services for shortening and forwarding
+          </li>
+          <li>Redis as a fast key-value store for lookups in milliseconds</li>
+          <li>Terraform IaC for reproducible, automated deployments</li>
+          <li>S3 + CloudFront for a globally distributed frontend</li>
+          <li>
+            ACM certificates + Cloudflare for secure, short custom domains
+          </li>
+          <li>Lightweight Frontend built with Svelte</li>
+        </ul>
+        This setup can handle millions of requests while staying lightweight and
+        cost-efficient. It scales out horizontally, survives traffic spikes, and
+        keeps latency low no matter where requests come from.
+        <br />
+        <br />
+        Check out the
+        <a
+          href="https://github.com/kian1991/micro-url"
+          target="_blank"
+          rel="noopener">GitHub repo</a
+        >
+        for the full source code and more details.
+      </div>
     </div>
     <form onsubmit={handleShorten} class="input__area">
       <h1>Drop-In</h1>
@@ -85,8 +110,10 @@
     font-size: 2.5em;
   }
 
-  p {
-    color: var(--color-paragraph);
+  a {
+    color: var(--color-headline);
+    font-weight: 600;
+    text-decoration: underline;
   }
 
   .hero {
@@ -94,6 +121,16 @@
     padding: 6rem 5rem;
     min-height: 100vh;
     background: var(--gradient);
+    color: var(--color-paragraph);
+
+    ul {
+      font-weight: 600;
+      margin-block: 1rem;
+    }
+
+    li {
+      margin-left: 1.5rem;
+    }
   }
 
   .logo {
@@ -104,6 +141,7 @@
     font-family: 'Ephesis';
     font-weight: 800;
     font-size: 4.5em;
+    color: var(--color-headline-secondary);
   }
 
   .input__area {
