@@ -12,4 +12,5 @@ jobs:
         with:
           role-to-assume: arn:aws:iam::877525430326:role/git-deployment-role
           aws-region: eu-central-1
+          audience: sts.amazonaws.com
       - run: aws sts get-caller-identity
