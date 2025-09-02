@@ -27,7 +27,6 @@
   const handleShorten = async (e: SubmitEvent) => {
     e.preventDefault();
     if (!droppedUrl) return;
-    shortUrlResult = '';
     loading = true;
     const { shortUrl } = await shortenUrl(droppedUrl);
     loading = false;

@@ -1,0 +1,15 @@
+name: Test AWS
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::877525430326:role/git-deployment-role
+          aws-region: eu-central-1
+      - run: aws sts get-caller-identity
