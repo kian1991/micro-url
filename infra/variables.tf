@@ -17,15 +17,7 @@ variable "domain" {
   default     = "murl.pw"
 }
 
-variable "repository_url" {
-  type    = string
-  default = "https://github.com/kian1991/micro-url"
-}
 
-variable "github_token" {
-  type        = string
-  sensitive   = true
-  description = "GitHub PAT (minimal scopes) for Amplify connection"
-}
+
 
 

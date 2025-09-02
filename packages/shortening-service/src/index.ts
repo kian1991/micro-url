@@ -30,7 +30,7 @@ app.route('/', shortenRouter);
 app.onError(errorMiddleware);
 
 export default {
-  port: 3000,
+  port: process.env.PORT ?? 3000,
   fetch: app.fetch,
   hostname: '0.0.0.0',
 };

@@ -35,6 +35,12 @@ data "aws_acm_certificate" "cf_cert" {
   most_recent = true
 }
 
+data "archive_file" "cf_router" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/index.js"
+  output_path = "${path.module}/lambda/cf-router.zip"
+}
+
 resource "aws_ecs_cluster" "this" {
   name = "micro-url-cluster"
 
@@ -82,68 +88,98 @@ module "alb" {
   public_subnets = module.network.public_subnets
 }
 
-# IAM Role for Amplify
-resource "aws_iam_role" "amplify_service" {
-  name = "amplifyServiceRole"
 
-  assume_role_policy = jsonencode({
+# S3 Bucket for Frontend
+resource "aws_s3_bucket" "frontend" {
+  bucket = "${var.domain}-frontend"
+}
+
+resource "aws_s3_bucket_ownership_controls" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_cloudfront_origin_access_control" "frontend_oac" {
+  name                              = "frontend-oac"
+  description                       = "OAC for CloudFront to access S3 frontend bucket"
+  origin_access_control_origin_type = "s3"
+  signing_behavior                  = "always"
+  signing_protocol                  = "sigv4"
+}
+
+resource "aws_s3_bucket_policy" "frontend" {
+  bucket = aws_s3_bucket.frontend.id
+  policy = jsonencode({
     Version = "2012-10-17",
-    Statement = [{
-      Action = "sts:AssumeRole",
-      Effect = "Allow",
-      Principal = {
-        Service = "amplify.amazonaws.com"
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          Service = "cloudfront.amazonaws.com"
+        },
+        Action   = "s3:GetObject",
+        Resource = "${aws_s3_bucket.frontend.arn}/*",
+        Condition = {
+          StringEquals = {
+            "AWS:SourceArn" = aws_cloudfront_distribution.this.arn
+          }
+        }
       }
-    }]
+    ]
   })
 }
 
-resource "aws_iam_role_policy_attachment" "amplify_service_policy" {
-  role       = aws_iam_role.amplify_service.name
-  policy_arn = "arn:aws:iam::aws:policy/AdministratorAccess-Amplify"
-}
 
-# Frontend (Amplify)
-resource "aws_amplify_app" "frontend" {
-  name                 = "micro-url-frontend"
-  repository           = var.repository_url
-  platform             = "WEB"
-  oauth_token          = var.github_token
-  iam_service_role_arn = aws_iam_role.amplify_service.arn
-  build_spec           = <<EOT
-version: 1
-applications:
-  - frontend:
-      phases:
-        preBuild:
-          commands:
-            - cd packages/frontend
-            - npm install
-        build:
-          commands:
-            - npm run build
-      artifacts:
-        baseDirectory: packages/frontend/dist
-        files:
-          - '**/*'
-      cache:
-        paths:
-          - node_modules/**/*
-EOT
+# CloudFront Distribution (for S3 + ALB Routing + SSL)
+resource "aws_iam_role" "lambda_edge" {
+  name = "lambda-edge-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "lambda.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+      },
+      {
+        "Effect" : "Allow",
+        "Principal" : { "Service" : "edgelambda.amazonaws.com" },
+        "Action" : "sts:AssumeRole"
+    }]
+  })
 }
-
-resource "aws_amplify_branch" "main" {
-  app_id            = aws_amplify_app.frontend.id
-  branch_name       = "main"
-  enable_auto_build = true
+resource "aws_lambda_function" "cf_router" {
+  function_name    = "cf-router"
+  provider         = aws.us-east-1
+  role             = aws_iam_role.lambda_edge.arn
+  handler          = "index.handler"
+  runtime          = "nodejs16.x"
+  publish          = true
+  filename         = data.archive_file.cf_router.output_path
+  source_code_hash = data.archive_file.cf_router.output_base64sha256
 }
 
 
 
-# CloudFront Distribution (for Amplify + ALB Routing + SSL)
+resource "aws_iam_role_policy_attachment" "lambda_edge_basic" {
+  role       = aws_iam_role.lambda_edge.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
 resource "aws_cloudfront_distribution" "this" {
   enabled             = true
   default_root_object = "index.html"
+  depends_on          = [aws_lambda_function.cf_router, aws_cloudfront_origin_access_control.frontend_oac]
 
   aliases = [var.domain] # murl.pw
 
@@ -154,15 +190,9 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   origin {
-    domain_name = aws_amplify_app.frontend.default_domain
-    origin_id   = "amplify-origin"
-
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
-    }
+    domain_name              = aws_s3_bucket.frontend.bucket_regional_domain_name
+    origin_id                = "s3-frontend"
+    origin_access_control_id = aws_cloudfront_origin_access_control.frontend_oac.id
   }
 
   origin {
@@ -178,48 +208,23 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   default_cache_behavior {
-    target_origin_id       = "amplify-origin"
+    target_origin_id       = "s3-frontend"
     viewer_protocol_policy = "redirect-to-https"
 
-    allowed_methods = ["HEAD", "GET", "OPTIONS"]
-    cached_methods  = ["HEAD", "GET"]
-    forwarded_values {
-      query_string = false
-      cookies {
-        forward = "none"
-      }
+    lambda_function_association {
+      event_type = "origin-request"
+      lambda_arn = aws_lambda_function.cf_router.qualified_arn
     }
-  }
 
-  ordered_cache_behavior {
-    path_pattern           = "/shorten*"
-    target_origin_id       = "alb-origin"
-    viewer_protocol_policy = "redirect-to-https"
-
-    allowed_methods = ["HEAD", "DELETE", "POST", "GET", "OPTIONS", "PUT", "PATCH"]
-    cached_methods  = ["HEAD", "GET", ]
     forwarded_values {
       query_string = true
-      cookies {
-        forward = "all"
-      }
+      cookies { forward = "all" }
     }
+
+    allowed_methods = ["GET", "HEAD", "OPTIONS", "PUT", "PATCH", "POST", "DELETE"]
+    cached_methods  = ["GET", "HEAD"]
   }
 
-  ordered_cache_behavior {
-    path_pattern           = "/*"
-    target_origin_id       = "alb-origin"
-    viewer_protocol_policy = "redirect-to-https"
-
-    allowed_methods = ["HEAD", "GET"]
-    cached_methods  = ["HEAD", "GET"]
-    forwarded_values {
-      query_string = true
-      cookies {
-        forward = "none"
-      }
-    }
-  }
 
   price_class = "PriceClass_100"
 
@@ -229,8 +234,6 @@ resource "aws_cloudfront_distribution" "this" {
     minimum_protocol_version = "TLSv1.2_2021"
   }
 }
-
-
 
 # ECR Repositories
 module "ecr_shortening" {

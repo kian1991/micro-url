@@ -1,5 +1,6 @@
 AWS_REGION     ?= eu-central-1
 AWS_ACCOUNT_ID ?= 877525430326
+DOMAIN 				 ?= murl.pw
 
 # Repo URLs
 ECR_URL = $(AWS_ACCOUNT_ID).dkr.ecr.$(AWS_REGION).amazonaws.com
@@ -41,3 +42,10 @@ force-aws-redeploy:
 # Connect docker to AWS ECR
 ecr-login:
 	aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin $(ECR_URL)
+
+# Build frontend and deploy to AWS
+frontend: 
+	export NODE_ENV=production && \
+	cd packages/frontend && \
+	bun i && bun run build && \
+	aws s3 sync dist/ s3://$(DOMAIN)-frontend --delete

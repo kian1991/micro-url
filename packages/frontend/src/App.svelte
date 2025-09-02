@@ -32,9 +32,10 @@
 </script>
 
 <main class="main">
-  <span class="logo">xoxo Murl</span>
   <div class="container">
     <div class="hero">
+      <span class="logo">xoxo Murl</span>
+
       <h1 class="header">
         M<span style="font-size: .8em; font-weight:400">icro</span> URL
       </h1>
@@ -125,6 +126,7 @@
     .hero,
     .input__area {
       padding: 2.5rem;
+      position: relative;
     }
 
     .logo {
