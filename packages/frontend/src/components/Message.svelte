@@ -1,4 +1,6 @@
 <script lang="ts">
+  import Copy from '@tabler/icons-svelte/icons/copy';
+
   const { message, isError: errorProp = false, ...props } = $props();
   let isError = $state(errorProp);
   let isSuccess = $state(false);
@@ -31,7 +33,7 @@
     {#if isSuccess}
       Copied.
     {:else}
-      {message}
+      {message} <Copy size={16} style="display: inline;" />
     {/if}
   </span>
 </button>
@@ -46,6 +48,15 @@
     margin-inline: auto;
     transition: color 200ms ease-in-out;
     font-family: monospace;
+
+    span {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font: bold;
+      user-select: none;
+      gap: 0.5rem;
+    }
   }
 
   .message:hover {

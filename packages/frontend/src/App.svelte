@@ -8,6 +8,7 @@
   let apiKey = $state('');
   let droppedUrl = $state('');
   let shortUrlResult = $state('');
+  let loading = $state(false);
 
   const AUTH_ENABLED: boolean =
     import.meta.env.VITE_AUTH_ENABLED === 'true' || false;
@@ -25,8 +26,11 @@
 
   const handleShorten = async (e: SubmitEvent) => {
     e.preventDefault();
-    console.log(`Input: ${droppedUrl}`);
+    if (!droppedUrl) return;
+    shortUrlResult = '';
+    loading = true;
     const { shortUrl } = await shortenUrl(droppedUrl);
+    loading = false;
     shortUrlResult = shortUrl;
   };
 </script>
@@ -85,7 +89,7 @@
       {#if AUTH_ENABLED}
         <Input type="text" placeholder="Enter API Key." bind:value={apiKey} />
       {/if}
-      <Button type="submit">SHORTEN</Button>
+      <Button type="submit" disabled={loading}>SHORTEN</Button>
       {#if shortUrlResult}
         <Message message={shortUrlResult} style="margin-top: 2rem;"></Message>
       {/if}
