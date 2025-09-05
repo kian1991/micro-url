@@ -1,4 +1,4 @@
-<h1 align="center">micro-url</h1>
+<h1 align="center">Murl: Your cloud native scalable URL-Shortener</h1>
 
 Tiny URL shortener built with Bun + Hono, a Svelte frontend, Redis for storage, and Traefik as the local API gateway.
 
@@ -158,4 +158,5 @@ Detailed production setup, variables, and deployment steps will be added here la
 ```bash
 aws ecr get-login-password --region eu-central-1 \
   | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.eu-central-1.amazonaws.com
+
 ```
