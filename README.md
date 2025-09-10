@@ -2,7 +2,7 @@
 
 Tiny URL shortener built with Bun + Hono, a Svelte frontend, Redis for storage, and Traefik as the local API gateway.
 
-This README covers local development only (Traefik in Docker). Production will be added later.
+This README covers local development (Traefik in Docker) and a production outline (Terraform on AWS). See `infra/README.md` for full cloud details.
 
 ## Overview
 
@@ -12,7 +12,7 @@ This README covers local development only (Traefik in Docker). Production will b
 - shared: common utilities (env parsing, redis client, logger, slug generation)
 - Redis: key/value store for URL<->slug mappings
 - Traefik: local reverse proxy routing requests to the services
-- IaC (production): Terraform on AWS (see infra/)
+- IaC (production): Terraform on AWS (CloudFront + S3 + ALB + ECS Fargate + Redis) — see `infra/`
 
 Routing (Traefik):
 - POST http://localhost/shorten -> shortening-service (create short URL)
@@ -139,23 +139,36 @@ micro-url
 
 ---
 
-Production setup will be documented later.
+## Production (AWS)
 
-## Production IaC (AWS)
+High-level flow. For details, see `infra/README.md`.
 
-This project uses Infrastructure as Code for the production cloud deployment:
-- Tooling: Terraform
-- Cloud provider: AWS
-- Code location: `infra/` (modules for network, ALB, ECS services, and Redis)
+Prerequisites:
+- Terraform v1.12.2+, AWS CLI configured, Docker
+- AWS account with permissions for ECR, ECS, CloudFront, ACM, S3, ElastiCache
 
-Detailed production setup, variables, and deployment steps will be added here later.
+1) Provision infrastructure
+- `cd infra && terraform init && terraform apply`
+- Creates VPC, ALB, ECS cluster, Redis, ECR repos, S3 bucket, CloudFront, Lambda@Edge.
+- Note: `infra/lambda/index.js` routes paths. If you change domain/region, update the hardcoded ALB/S3 hostnames and re-apply, or ask to template it.
 
+2) Authenticate to ECR
+- `make ecr-login` (uses `AWS_ACCOUNT_ID` and `AWS_REGION`, defaults set in Makefile)
 
+3) Build and push backend images
+- All services: `make deploy-all`
+- Single service: `make SERVICE=shortening deploy` or `make SERVICE=forwarding deploy`
 
+4) Deploy frontend to S3
+- `make frontend` (uses `DOMAIN` from Makefile; uploads `packages/frontend/dist` to S3)
 
-# PROD:
+5) Configure DNS
+- Point your domain (e.g., `murl.pw`) to the CloudFront distribution (`terraform output cloudfront_domain_name`). If using Cloudflare, enable proxy on user-facing records and keep ACM validation CNAMEs DNS-only.
 
-```bash
-aws ecr get-login-password --region eu-central-1 \
-  | docker login --username AWS --password-stdin <AWS_ACCOUNT_ID>.dkr.ecr.eu-central-1.amazonaws.com
-```
+6) Redeploy backend (optional)
+- Force ECS to pick up latest images: `make force-aws-redeploy`
+
+Useful outputs (`cd infra && terraform output`):
+- `cloudfront_domain_name` — target for DNS
+- `s3_bucket_domain_name` — frontend bucket
+- `alb_dns_name` — ALB endpoint (used by Lambda@Edge and for debugging)

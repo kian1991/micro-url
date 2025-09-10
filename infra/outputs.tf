@@ -3,6 +3,10 @@ output "alb_dns_name" {
 }
 
 output "s3_bucket_domain_name" {
-  value = aws_s3_bucket.frontend.bucket_domain_name
+  value = module.cdn.s3_bucket_domain_name
+}
+
+output "cloudfront_domain_name" {
+  value = module.cdn.distribution_domain_name
 
 }

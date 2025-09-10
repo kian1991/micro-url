@@ -1,15 +1,15 @@
 # Infrastructure for Micro-URL (Terraform)
 
-This directory contains the Terraform configuration for the **Micro-URL** project.  
-The structure is fully modular so that individual components can be developed, reused, and maintained independently.
+This directory contains the Terraform configuration for the Micro-URL project.
+The structure is modular so individual components can be developed, reused, and maintained independently.
 
 ## SSL
 SSL certificates are managed through AWS Certificate Manager (ACM) to ensure secure communication over HTTPS.  
 Certificates are provisioned for both the root domain and its subdomains, and validated via DNS.  
 
-**TLS termination for end-users now occurs at AWS CloudFront,** which fronts both the frontend and backend services.  
-ACM certificates are provisioned in the appropriate AWS region for CloudFront (us-east-1) and attached to the CloudFront distribution for the root domain (e.g., `murl.pw`, `*.murl.pw`).  
-Additional ACM certificates may be provisioned for the internal ALB, but these are only used for encrypted traffic between CloudFront and the ALB (not directly by end-users).
+TLS termination for end-users occurs at AWS CloudFront, which fronts both the frontend (S3) and backend services (ALB).
+ACM certificates are provisioned in the appropriate AWS region for CloudFront (us-east-1) and attached to the CloudFront distribution for the root domain (e.g., `murl.pw`, `*.murl.pw`).
+Additional ACM certificates may be provisioned for the internal ALB only if you enable HTTPS between CloudFront and the ALB (not required in the current HTTP setup).
 
 ### Manual Steps to Request and Validate ACM Certificates:
 
@@ -26,32 +26,33 @@ Additional ACM certificates may be provisioned for the internal ALB, but these a
 
 3. **Attach Certificates:**
    - For end-user HTTPS, attach the ACM certificate (in `us-east-1`) to the CloudFront distribution.
-   - For internal encrypted traffic between CloudFront and the ALB (if needed), attach a certificate to the ALB as well.
+   - Optional: for encrypted traffic between CloudFront and the ALB, attach a certificate to the ALB and update the origin config to HTTPS.
 
-4. **Configure Cloudflare DNS:**
-   - In your Cloudflare dashboard, create CNAME records for both the root domain (`murl.pw`) and subdomains (e.g., `api.murl.pw`), **pointing them to the CloudFront distribution domain name**.
-   - Enable the proxy (orange cloud) for these CNAME records to leverage Cloudflare's CDN and security features.
-   - Ensure ACM validation CNAME records remain DNS only (grey cloud).
+4. **Configure DNS (e.g., Cloudflare):**
+   - Create CNAME records for both the root domain (`murl.pw`) and any subdomains, pointing them to the CloudFront distribution domain name.
+   - Enable the proxy (orange cloud) if using Cloudflare; keep ACM validation CNAME records DNS only (grey cloud).
 
 Following these steps ensures secure, trusted SSL/TLS encryption for your Micro-URL services, with TLS terminating at CloudFront for all end-user connections.
 
 ## CloudFront Integration
 
-CloudFront acts as the unified entry point for all frontend and backend traffic.
+CloudFront is the unified entry point for all frontend and backend traffic.
 
-- **Origins:**  
-  - **Amplify**: Serves the frontend static site and assets.
-  - **ALB**: Handles all backend API and redirect services.
+- Origins:
+  - S3: Serves the frontend static site and assets via an S3 bucket with Origin Access Control (OAC).
+  - ALB: Handles backend API and redirect services.
 
-- **Behaviors:**  
-  - Requests to `/shorten*` and slug paths (e.g., `/abc123`) are routed to the ALB origin.
-  - Requests to `/` and static assets (e.g., `/index.html`, `/assets/*`) are routed to the Amplify origin.
+- Routing logic:
+  - A Lambda@Edge function inspects the request path and routes:
+    - `/shorten*` → ALB (shortening service)
+    - single-segment slugs without a dot (e.g., `/abc123`) → ALB (forwarding service)
+    - everything else → S3 (frontend)
 
-- **DNS:**  
-  - Cloudflare DNS CNAME records for the root and subdomains now point to the CloudFront distribution domain.
-  - ACM validation CNAME records remain DNS only (grey cloud).
+- DNS:
+  - Public DNS records point to the CloudFront distribution domain.
+  - ACM validation CNAME records must remain DNS only.
 
-This setup enables CloudFront to handle TLS termination, caching, and routing logic, while separating frontend and backend concerns at the origin level.
+This setup keeps TLS, caching, and request routing at CloudFront while separating frontend (S3) and backend (ALB) concerns.
 
 ## Structure
 ```
@@ -62,6 +63,11 @@ infra/
   terraform.tfvars # Default values for DEV (e.g. VPC CIDR, AWS region)
 
 modules/
+  ecs-cluster/
+    main.tf        # ECS cluster + execution role
+    variables.tf
+    outputs.tf
+
   network/
     main.tf        # VPC, subnets, routing, gateways
     variables.tf   # Input variables for the network module
@@ -72,7 +78,7 @@ modules/
     variables.tf
     outputs.tf
 
-  ecs-service/
+  ecs-services/
     main.tf        # ECS task definition + service (including target group binding)
     variables.tf
     outputs.tf
@@ -87,6 +93,10 @@ modules/
     variables.tf
     outputs.tf
 
+  cdn/
+    main.tf        # S3 bucket (frontend), OAC, Lambda@Edge, CloudFront distribution
+    variables.tf
+    outputs.tf
 ```
 
 ## Module Overview
@@ -123,10 +133,10 @@ modules/
 
 ## Workflow
 
-1. Define core infrastructure using **network** and **alb** modules.  
-2. Add backend services with the **ecs-service** module (e.g. shortening-service, forwarding-service).  
-3. Provision a Redis instance with the **redis** module.  
-4. Expose endpoints via CloudFront behaviors that route to ALB or Amplify.
+1. Define core infrastructure using network and ALB modules.
+2. Add backend services with the ecs-services module (shortening, forwarding).
+3. Provision a Redis instance with the redis module.
+4. Expose endpoints via a CloudFront distribution (S3 + ALB) and Lambda@Edge for path-based routing.
 
 
 ## First Deployment (Bootstrap)
@@ -134,26 +144,19 @@ modules/
 ### Prerequisites
 - AWS CLI configured with appropriate credentials and default region.
 - Docker installed and running.
-- Terraform initialized (`terraform init` run in the `infra/` directory).
+- Terraform v1.12.2+ (matches `required_version` in `main.tf`).
+- Initialize Terraform in `infra/`: `terraform init`.
 
 ### 1) Provision core infra (without ECS/CloudFront)
-- Temporarily comment out the ECS services and CloudFront distribution blocks in `main.tf`.
-- Run:
-  ```
-  terraform apply
-  ```
-- This will create the VPC, ALB, Redis, ECR repositories, and Amplify frontend.
+- Temporarily comment out the ECS services and the CloudFront distribution blocks in `main.tf`.
+- Run `terraform apply` to create the VPC, ALB, Redis, ECR repositories, and the S3 frontend bucket.
 
 ### 2) ECR login
 - Authenticate Docker with ECR by running:
   ```
   make ecr-login
   ```
-- This uses `AWS_REGION` and `AWS_ACCOUNT_ID` defaults from the Makefile.
-- To override, e.g. for a different region:
-  ```
-  make AWS_REGION=eu-central-1 ecr-login
-  ```
+- This uses `AWS_ACCOUNT_ID` and `AWS_REGION` from the Makefile. You can override on the command line, e.g. `make AWS_REGION=us-east-1 ecr-login`.
 
 ### 3) Build & push images
 - **Option A (all services):**
@@ -181,15 +184,9 @@ modules/
 
 ### 5) Enable CloudFront
 - Uncomment the CloudFront distribution block in `main.tf`.
-- Run:
-  ```
-  terraform apply
-  ```
+- Run `terraform apply`.
 - CloudFront becomes the TLS entry point for end-users.
-- Routing behaviors will be wired as follows:
-  - `/shorten*` → ALB (shortening service)
-  - Default `/` and static assets → Amplify frontend
-  - If desired, slug paths (`/*`) can also route to ALB for forwarding.
+- Lambda@Edge routes `/shorten*` and single-segment slugs to the ALB; the default goes to S3.
 
 ### 6) Smoke tests
 - Check health endpoint:
@@ -200,6 +197,14 @@ modules/
   ```
   curl -X POST https://murl.pw/shorten -d '{"url":"https://example.com"}' -H "Content-Type: application/json"
   ```
+
+### Frontend deploy (S3)
+
+To publish the built frontend to the S3 bucket used by CloudFront:
+
+```
+make frontend            # uses DOMAIN from Makefile (default: murl.pw)
+```
 
 ### Makefile cheatsheet
 
@@ -214,3 +219,11 @@ modules/
 
 - `make force-aws-redeploy`  
   Force ECS to redeploy services using latest images.
+
+## Notes and caveats
+
+- Secrets: do not commit `.env` files in `infra/` (or anywhere). If a token or secret was committed, rotate it immediately and remove the file from the repo history.
+- Terraform state: do not commit Terraform state or `.terraform/` directories. Prefer a remote backend (e.g., S3 + DynamoDB) for production. If using the local backend for experiments, add `terraform.tfstate*` and `.terraform/` to `.gitignore`.
+- Lambda@Edge origin overrides: the Lambda at `infra/lambda/index.js` currently contains hardcoded ALB and S3 domain names. Update these when infrastructure changes, or improve by wiring values from Terraform outputs (recommended) to avoid drift.
+- ALB origin protocol: the ALB origin is configured for HTTP from CloudFront. For HTTPS to the ALB, enable an ACM cert on the ALB and change the CloudFront origin config accordingly.
+- Certificates: CloudFront requires ACM certificates in `us-east-1`.
