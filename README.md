@@ -1,4 +1,4 @@
-<h1 align="center">micro-url</h1>
+<h1 align="center">Murl: Your cloud native scalable URL-Shortener</h1>
 
 Tiny URL shortener built with Bun + Hono, a Svelte frontend, Redis for storage, and Traefik as the local API gateway.
 
