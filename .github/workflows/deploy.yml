@@ -2,7 +2,7 @@ name: Deploy
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 env:
@@ -93,10 +93,10 @@ jobs:
           bun-version: latest
 
       - name: Install dependencies
-        run: bun install --frozen-lockfile
+        run: bun install
 
       - name: Build frontend
-        run: bun run -C packages/frontend build
+        run: cd packages/frontend && bun run build
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
@@ -108,4 +108,3 @@ jobs:
       - name: Sync to S3
         run: |
           aws s3 sync packages/frontend/dist/ s3://${{ env.DOMAIN }}-frontend --delete
-
