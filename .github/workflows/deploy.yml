@@ -1,0 +1,111 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+  DOMAIN: ${{ secrets.DOMAIN }}
+  ECR_URL: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-push-images:
+    name: Build and push images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service: [shortening, forwarding]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.service }} image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          build-args: |
+            SERVICE=${{ matrix.service }}-service
+          tags: |
+            ${{ env.ECR_URL }}/${{ matrix.service }}:latest
+            ${{ env.ECR_URL }}/${{ matrix.service }}:${{ github.sha }}
+
+  deploy-ecs:
+    name: Force ECS rollout
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Force new deployment (forwarding)
+        run: |
+          aws ecs update-service \
+            --cluster micro-url-cluster \
+            --service forwarding-ecs-service \
+            --force-new-deployment
+
+      - name: Force new deployment (shortening)
+        run: |
+          aws ecs update-service \
+            --cluster micro-url-cluster \
+            --service shortening-ecs-service \
+            --force-new-deployment
+
+  deploy-frontend:
+    name: Deploy frontend to S3
+    needs: build-and-push-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build frontend
+        run: bun run -C packages/frontend build
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+          audience: sts.amazonaws.com
+
+      - name: Sync to S3
+        run: |
+          aws s3 sync packages/frontend/dist/ s3://${{ env.DOMAIN }}-frontend --delete
+

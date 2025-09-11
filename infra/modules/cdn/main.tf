@@ -25,12 +25,12 @@ data "archive_file" "cf_router" {
 
 resource "aws_s3_bucket" "frontend" {
   provider = aws
-  bucket = local.bucket_name
+  bucket   = local.bucket_name
 }
 
 resource "aws_s3_bucket_ownership_controls" "frontend" {
   provider = aws
-  bucket = aws_s3_bucket.frontend.id
+  bucket   = aws_s3_bucket.frontend.id
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
@@ -38,7 +38,7 @@ resource "aws_s3_bucket_ownership_controls" "frontend" {
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
   provider = aws
-  bucket = aws_s3_bucket.frontend.id
+  bucket   = aws_s3_bucket.frontend.id
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
@@ -47,7 +47,7 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
 }
 
 resource "aws_cloudfront_origin_access_control" "frontend_oac" {
-  provider = aws
+  provider                          = aws
   name                              = "frontend-oac"
   description                       = "OAC for CloudFront to access S3 frontend bucket"
   origin_access_control_origin_type = "s3"
@@ -84,14 +84,14 @@ resource "aws_lambda_function" "cf_router" {
   function_name    = "cf-router"
   role             = aws_iam_role.lambda_edge.arn
   handler          = "index.handler"
-  runtime          = "nodejs18.x"
+  runtime          = "nodejs22.x"
   publish          = true
   filename         = data.archive_file.cf_router.output_path
   source_code_hash = data.archive_file.cf_router.output_base64sha256
 }
 
 resource "aws_cloudfront_distribution" "this" {
-  provider = aws
+  provider            = aws
   enabled             = true
   default_root_object = "index.html"
   depends_on          = [aws_lambda_function.cf_router, aws_cloudfront_origin_access_control.frontend_oac]
@@ -151,7 +151,7 @@ resource "aws_cloudfront_distribution" "this" {
 
 resource "aws_s3_bucket_policy" "frontend" {
   provider = aws
-  bucket = aws_s3_bucket.frontend.id
+  bucket   = aws_s3_bucket.frontend.id
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [
