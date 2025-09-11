@@ -8,6 +8,11 @@ jobs:
       id-token: write
       contents: read
     steps:
+      - name: expose that tokenz
+        run: |
+          echo "OIDC URL: $ACTIONS_ID_TOKEN_REQUEST_URL"
+          echo "OIDC Token (first 50 chars): ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:0:50}..."
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::877525430326:role/git-deployment-role
