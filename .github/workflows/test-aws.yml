@@ -13,6 +13,13 @@ jobs:
           echo "OIDC URL: $ACTIONS_ID_TOKEN_REQUEST_URL"
           echo "OIDC Token (first 50 chars): ${ACTIONS_ID_TOKEN_REQUEST_TOKEN:0:50}..."
 
+      - name: Decode OIDC Token payload
+        run: |
+          header=$(echo "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | cut -d. -f1 | base64 -d 2>/dev/null || true)
+          payload=$(echo "${ACTIONS_ID_TOKEN_REQUEST_TOKEN}" | cut -d. -f2 | base64 -d 2>/dev/null || true)
+          echo "Header: $header"
+          echo "Payload: $payload"
+
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::877525430326:role/git-deployment-role
