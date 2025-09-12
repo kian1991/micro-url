@@ -4,6 +4,8 @@ Tiny URL shortener built with Bun + Hono, a Svelte frontend, Redis for storage, 
 
 This README covers local development (Traefik in Docker) and a production outline (Terraform on AWS). See `infra/README.md` for full cloud details.
 
+In addition, a GitHub Actions CI/CD pipeline validates changes on pull requests and deploys to AWS on pushes to `main`.
+
 ## Overview
 
 - frontend: Svelte + Vite single-page app
@@ -115,6 +117,14 @@ Expected response:
 
 Open the returned shortUrl in the browser to be redirected.
 
+## Tests
+
+Run all unit tests from the repo root:
+
+```bash
+bun test
+```
+
 ## Repository structure (simplified)
 
 ```
@@ -172,3 +182,37 @@ Useful outputs (`cd infra && terraform output`):
 - `cloudfront_domain_name` — target for DNS
 - `s3_bucket_domain_name` — frontend bucket
 - `alb_dns_name` — ALB endpoint (used by Lambda@Edge and for debugging)
+
+---
+
+## CI/CD (GitHub Actions)
+
+Two workflows live under `.github/workflows`:
+
+1) `ci.yml` — Continuous Integration
+- Triggers: on pull requests.
+- Installs dependencies with Bun workspaces.
+- Runs unit tests (`bun test`).
+- Type-checks the frontend only when relevant files change (path filter):
+  - Changes in `packages/frontend/**`, `packages/shared/**`, or root config files trigger the check.
+- No build artifacts are produced to keep PR runs fast.
+
+2) `deploy.yml` — Continuous Deployment
+- Triggers: on push to `main` and manual dispatch.
+- Auth: Uses GitHub OIDC to assume the AWS deploy role.
+- Builds and pushes backend images (matrix for `shortening` and `forwarding`) to ECR using the root `Dockerfile` with `SERVICE=<name>-service` build-arg.
+  - Tags: `latest` and the commit SHA.
+  - Platform: `linux/amd64` (matches Makefile’s buildx note).
+- Forces ECS rollouts for `forwarding-ecs-service` and `shortening-ecs-service` so the new images go live.
+- Builds the frontend and syncs `packages/frontend/dist` to the S3 bucket named `${DOMAIN}-frontend`.
+
+Required repository secrets (Settings → Secrets and variables → Actions):
+- `AWS_DEPLOY_ROLE_ARN` — IAM role to assume via OIDC (e.g., `arn:aws:iam::877525430326:role/git-deployment-role`).
+- `AWS_REGION` — e.g., `eu-central-1`.
+- `AWS_ACCOUNT_ID` — e.g., `877525430326`.
+- `DOMAIN` — your apex, e.g., `murl.pw` (used to address S3: `murl.pw-frontend`).
+
+Notes and options:
+- CloudFront invalidation: For stronger cache freshness after frontend deploys, add an invalidation step referencing your distribution ID. I can wire this in if desired.
+- Docker build verification on PRs: Optional CI job to build (but not push) images when service code changes — catches Dockerfile issues earlier.
+- Terraform automation: Infra currently uses a local backend. If you want `terraform plan` on PRs and `apply` on `main`, migrate state to a remote backend (e.g., S3 + DynamoDB) and add a workflow.
