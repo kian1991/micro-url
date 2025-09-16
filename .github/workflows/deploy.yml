@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 env:
+  VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
   AWS_REGION: ${{ secrets.AWS_REGION }}
   AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
   DOMAIN: ${{ secrets.DOMAIN }}
