@@ -1,5 +1,7 @@
 <h1 align="center">Murl: Your cloud native scalable URL-Shortener</h1>
 
+[![Deploy](https://github.com/kian1991/micro-url/actions/workflows/deploy.yml/badge.svg)](https://github.com/kian1991/micro-url/actions/workflows/deploy.yml)
+
 Tiny URL shortener built with Bun + Hono, a Svelte frontend, Redis for storage, and Traefik as the local API gateway.
 
 This README covers local development (Traefik in Docker) and a production outline (Terraform on AWS). See `infra/README.md` for full cloud details.
@@ -177,6 +179,7 @@ Prerequisites:
 
 6) Redeploy backend (optional)
 - Force ECS to pick up latest images: `make force-aws-redeploy`
+
 
 Useful outputs (`cd infra && terraform output`):
 - `cloudfront_domain_name` — target for DNS
