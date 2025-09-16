@@ -17,11 +17,25 @@ resource "aws_lb_target_group" "this" {
 
 # Log group for CW
 resource "aws_cloudwatch_log_group" "this" {
+  count             = var.cloudwatch_log_enabled ? 1 : 0
   name              = "/ecs/${var.service_name}"
   retention_in_days = 7
 }
 
 # ECS Task Def
+locals {
+  log_conf = var.cloudwatch_log_enabled ? {
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = aws_cloudwatch_log_group.this[0].name
+        awslogs-region        = var.region
+        awslogs-stream-prefix = "ecs"
+      }
+    }
+  } : {}
+}
+
 resource "aws_ecs_task_definition" "this" {
   family                   = var.service_name
   network_mode             = "awsvpc"
@@ -32,7 +46,7 @@ resource "aws_ecs_task_definition" "this" {
 
 
   container_definitions = jsonencode([
-    {
+    merge({
       name      = var.service_name
       image     = var.image
       essential = true
@@ -48,15 +62,7 @@ resource "aws_ecs_task_definition" "this" {
           value = v
         }
       ]
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.this.name
-          awslogs-region        = var.region
-          awslogs-stream-prefix = "ecs"
-        }
-      }
-    }
+    }, local.log_conf)
   ])
 }
 

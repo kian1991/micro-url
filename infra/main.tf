@@ -28,6 +28,20 @@ locals {
   port     = 3000
 }
 
+data "aws_acm_certificate" "cf_cert" {
+  provider    = aws.us-east-1
+  domain      = var.domain
+  statuses    = ["ISSUED"]
+  most_recent = true
+}
+
+data "archive_file" "cf_router" {
+  type        = "zip"
+  source_file = "${path.module}/lambda/index.js"
+  output_path = "${path.module}/cf-router.zip"
+}
+
+
 # -------------------------------------------------------------------
 # Modules
 # -------------------------------------------------------------------
@@ -48,21 +62,22 @@ module "alb" {
 module "ecs_cluster" {
   source                    = "./modules/ecs-cluster"
   cluster_name              = "micro-url-cluster"
-  enable_container_insights = true
+  enable_container_insights = var.cloudwatch_log_enabled
   execution_role_name       = "ecsTaskExecutionRole"
 }
 
 # CloudFront + S3 (OAC) + Lambda@Edge
 module "cdn" {
-  source = "./modules/cdn"
+  source              = "./modules/cdn"
+  domain              = var.domain
+  s3_bucket_region    = var.aws_region
+  alb_domain_name     = module.alb.alb_dns_name
+  acm_certificate_arn = data.aws_acm_certificate.cf_cert.arn
 
-  providers = {
-    aws           = aws.us-east-1
+  cf_router = {
+    output_path         = data.archive_file.cf_router.output_path
+    output_base64sha256 = data.archive_file.cf_router.output_base64sha256
   }
-
-  domain             = var.domain
-  alb_domain_name    = module.alb.alb_dns_name
-  lambda_source_file = "${path.module}/lambda/index.js"
 }
 
 # ECR Repositories
@@ -88,6 +103,7 @@ module "ecs_shortening_service" {
   vpc_id                 = module.network.vpc_id
   security_group_ids     = [module.alb.security_group_id]
   ecs_execution_role_arn = module.ecs_cluster.execution_role_arn
+  cloudwatch_log_enabled = var.cloudwatch_log_enabled
   environment = {
     REDIS_URL = "redis://${module.redis.redis_endpoint}"
     BASE_URL  = local.base_url
@@ -106,6 +122,7 @@ module "ecs_forwarding_service" {
   vpc_id                 = module.network.vpc_id
   security_group_ids     = [module.alb.security_group_id]
   ecs_execution_role_arn = module.ecs_cluster.execution_role_arn
+  cloudwatch_log_enabled = var.cloudwatch_log_enabled
   environment = {
     REDIS_URL = "redis://${module.redis.redis_endpoint}"
     BASE_URL  = local.base_url
@@ -156,8 +173,5 @@ resource "aws_lb_listener_rule" "shortening_root" {
     }
   }
 }
-
-
-
 
 ##! If you add more endpoints in the future e.g. /analytics etc. they should be here

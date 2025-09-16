@@ -1,44 +1,22 @@
-terraform {
-  required_providers {
-    aws = {
-      source = "hashicorp/aws"
-    }
-  }
-}
 
 locals {
   bucket_name = coalesce(var.s3_bucket_name, "${var.domain}-frontend")
 }
 
-data "aws_acm_certificate" "cf_cert" {
-  provider    = aws
-  domain      = var.domain
-  statuses    = ["ISSUED"]
-  most_recent = true
-}
-
-data "archive_file" "cf_router" {
-  type        = "zip"
-  source_file = var.lambda_source_file
-  output_path = "${path.module}/cf-router.zip"
-}
-
 resource "aws_s3_bucket" "frontend" {
-  provider = aws
-  bucket   = local.bucket_name
+  region = var.s3_bucket_region
+  bucket = local.bucket_name
 }
 
 resource "aws_s3_bucket_ownership_controls" "frontend" {
-  provider = aws
-  bucket   = aws_s3_bucket.frontend.id
+  bucket = aws_s3_bucket.frontend.id
   rule {
     object_ownership = "BucketOwnerEnforced"
   }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "frontend" {
-  provider = aws
-  bucket   = aws_s3_bucket.frontend.id
+  bucket = aws_s3_bucket.frontend.id
   rule {
     apply_server_side_encryption_by_default {
       sse_algorithm = "AES256"
@@ -86,8 +64,8 @@ resource "aws_lambda_function" "cf_router" {
   handler          = "index.handler"
   runtime          = "nodejs22.x"
   publish          = true
-  filename         = data.archive_file.cf_router.output_path
-  source_code_hash = data.archive_file.cf_router.output_base64sha256
+  filename         = var.cf_router.output_path
+  source_code_hash = var.cf_router.output_base64sha256
 }
 
 resource "aws_cloudfront_distribution" "this" {
@@ -143,15 +121,14 @@ resource "aws_cloudfront_distribution" "this" {
   price_class = "PriceClass_100"
 
   viewer_certificate {
-    acm_certificate_arn      = data.aws_acm_certificate.cf_cert.arn
+    acm_certificate_arn      = var.acm_certificate_arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }
 }
 
 resource "aws_s3_bucket_policy" "frontend" {
-  provider = aws
-  bucket   = aws_s3_bucket.frontend.id
+  bucket = aws_s3_bucket.frontend.id
   policy = jsonencode({
     Version = "2012-10-17",
     Statement = [

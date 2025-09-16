@@ -13,8 +13,8 @@ exports.handler = async (event) => {
     })
   );
 
-  const albDns = 'micro-url-alb-2045249805.eu-central-1.elb.amazonaws.com';
-  const s3Bucket = 'murl.pw-frontend.s3.eu-central-1.amazonaws.com';
+  const albDns = 'micro-url-alb-364237676.eu-central-1.elb.amazonaws.com';
+  const s3Bucket = 'murl.pw-frontend.s3.amazonaws.com';
 
   // /shorten → ALB
   if (uri.startsWith('/shorten')) {

@@ -27,3 +27,9 @@ variable "environment" {
   type    = map(string)
   default = {}
 }
+
+variable "cloudwatch_log_enabled" {
+  description = "Enable CloudWatch logging for this service"
+  type        = bool
+  default     = false
+}

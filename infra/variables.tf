@@ -17,6 +17,12 @@ variable "domain" {
   default     = "murl.pw"
 }
 
+variable "cloudwatch_log_enabled" {
+  description = "Enable CloudWatch logging"
+  type        = bool
+  default     = false
+}
+
 
 
 
