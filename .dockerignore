@@ -15,6 +15,3 @@ helm-charts
 coverage*
 dist
 .env*
-
-#ignore frontend package as it wont be buildt into docker anyway.
-packages/frontend
