@@ -6,6 +6,8 @@ services:
       - 6379:6379
     volumes:
       - ./redis-data:/data
+    networks:
+      - default
 
   shortening-service:
     build:
@@ -35,6 +37,10 @@ services:
       - traefik.http.middlewares.cors-header.headers.accesscontrolallowheaders=*
       - traefik.http.middlewares.cors-header.headers.accesscontrolalloworiginlist=https://murl.pw
       - traefik.http.middlewares.cors-header.headers.addvaryheader=true
+      - traefik.docker.network=dokploy-network
+    networks:
+      - default
+      - reverse_proxy
 
   forwarding-service:
     build:
@@ -60,6 +66,10 @@ services:
       - traefik.http.routers.forward.middlewares=cors-header
       - traefik.http.services.forward.loadbalancer.server.port=3000
       - traefik.http.routers.forward.tls=true
+      - traefik.docker.network=dokploy-network
+    networks:
+      - default
+      - reverse_proxy
 
   frontend:
     build:
@@ -77,3 +87,14 @@ services:
       - traefik.http.routers.frontend.priority=10
       - traefik.http.services.frontend.loadbalancer.server.port=80
       - traefik.http.routers.frontend.tls=true
+      - traefik.docker.network=dokploy-network
+    networks:
+      - default
+      - reverse_proxy
+
+networks:
+  default:
+    name: micro-url_default
+  reverse_proxy:
+    external: true
+    name: dokploy-network
