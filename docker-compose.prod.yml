@@ -1,0 +1,59 @@
+services:
+  micro-url-db:
+    image: redis:8-alpine
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    volumes:
+      - ./redis-data:/data
+
+  shortening-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: shortening-service
+    restart: unless-stopped
+    depends_on:
+      - micro-url-db
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      REDIS_URL: redis://micro-url-db:6379
+      BASE_URL: http://localhost
+    expose:
+      - "3000"
+
+  forwarding-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SERVICE: forwarding-service
+    restart: unless-stopped
+    depends_on:
+      - micro-url-db
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      REDIS_URL: redis://micro-url-db:6379
+      BASE_URL: http://localhost
+    expose:
+      - "3000"
+
+  prod-api-gateway:
+    image: traefik:v3.5.0
+    restart: unless-stopped
+    command:
+      - --api.insecure=true
+      - --providers.docker=false
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --entrypoints.web.address=:80
+    depends_on:
+      - forwarding-service
+      - shortening-service
+    ports:
+      - "80:80"
+      - "8080:8080" # Dashboard
+    volumes:
+      - ./traefik-prod:/etc/traefik

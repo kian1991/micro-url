@@ -219,3 +219,115 @@ Notes and options:
 - CloudFront invalidation: For stronger cache freshness after frontend deploys, add an invalidation step referencing your distribution ID. I can wire this in if desired.
 - Docker build verification on PRs: Optional CI job to build (but not push) images when service code changes — catches Dockerfile issues earlier.
 - Terraform automation: Infra currently uses a local backend. If you want `terraform plan` on PRs and `apply` on `main`, migrate state to a remote backend (e.g., S3 + DynamoDB) and add a workflow.
+
+```
+micro-url
+├─ .dockerignore
+├─ Dockerfile
+├─ Makefile
+├─ README.md
+├─ benchmarks
+│  └─ rate-limit
+│     ├─ README.md
+│     ├─ run.sh
+│     └─ wrk-report.lua
+├─ bun.lock
+├─ docker-compose.dev.yml
+├─ docs
+│  └─ ci-cd-improvement-checklist.md
+├─ infra
+│  ├─ .terraform.lock.hcl
+│  ├─ README.md
+│  ├─ lambda
+│  │  └─ index.js
+│  ├─ main.tf
+│  ├─ modules
+│  │  ├─ alb
+│  │  │  ├─ main.tf
+│  │  │  └─ variables.tf
+│  │  ├─ cdn
+│  │  │  ├─ main.tf
+│  │  │  └─ variables.tf
+│  │  ├─ ecr
+│  │  │  ├─ main.tf
+│  │  │  └─ variables.tf
+│  │  ├─ ecs-cluster
+│  │  │  ├─ main.tf
+│  │  │  └─ variables.tf
+│  │  ├─ ecs-services
+│  │  │  ├─ main.tf
+│  │  │  └─ variables.tf
+│  │  ├─ network
+│  │  │  ├─ main.tf
+│  │  │  └─ variables.tf
+│  │  └─ redis
+│  │     ├─ main.tf
+│  │     └─ variables.tf
+│  ├─ plan.txt
+│  └─ variables.tf
+├─ package-lock.json
+├─ package.json
+├─ packages
+│  ├─ .DS_Store
+│  ├─ forwarding-service
+│  │  ├─ README.md
+│  │  ├─ package.json
+│  │  ├─ src
+│  │  │  ├─ index.ts
+│  │  │  └─ schemas.ts
+│  │  └─ tsconfig.json
+│  ├─ frontend
+│  │  ├─ README.md
+│  │  ├─ index.html
+│  │  ├─ package.json
+│  │  ├─ public
+│  │  │  ├─ fonts
+│  │  │  │  ├─ Ephesis-Regular.ttf
+│  │  │  │  └─ LeagueSpartan-VariableFont_wght.ttf
+│  │  │  └─ murl_icon.svg
+│  │  ├─ src
+│  │  │  ├─ App.svelte
+│  │  │  ├─ app.css
+│  │  │  ├─ components
+│  │  │  │  ├─ Button.svelte
+│  │  │  │  ├─ Input.svelte
+│  │  │  │  └─ Message.svelte
+│  │  │  ├─ lib
+│  │  │  │  └─ api
+│  │  │  │     └─ shorten-url.ts
+│  │  │  ├─ main.ts
+│  │  │  ├─ reset.css
+│  │  │  └─ vite-env.d.ts
+│  │  ├─ svelte.config.js
+│  │  ├─ tsconfig.app.json
+│  │  ├─ tsconfig.json
+│  │  ├─ tsconfig.node.json
+│  │  └─ vite.config.ts
+│  ├─ shared
+│  │  ├─ constants.ts
+│  │  ├─ db.ts
+│  │  ├─ env.ts
+│  │  ├─ logger.ts
+│  │  ├─ middleware
+│  │  │  ├─ errors.ts
+│  │  │  └─ rate-limit.ts
+│  │  ├─ slug.ts
+│  │  ├─ tests
+│  │  │  ├─ __mocks__
+│  │  │  │  ├─ crypto.ts
+│  │  │  │  └─ db.ts
+│  │  │  ├─ constants.ts
+│  │  │  └─ slug.test.ts
+│  │  └─ types.ts
+│  └─ shortening-service
+│     ├─ README.md
+│     ├─ package.json
+│     ├─ src
+│     │  ├─ index.ts
+│     │  └─ schemas.ts
+│     └─ tsconfig.json
+├─ traefik
+│  └─ dynamic
+└─ tsconfig.json
+
+```

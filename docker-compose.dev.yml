@@ -15,7 +15,7 @@ services:
       - --entrypoints.web.address=:80
 
     ports:
-      - '80:80'
-      - '8080:8080' # Dashboard
+      - "80:80"
+      - "8080:8080" # Dashboard
     volumes:
-      - ./traefik:/etc/traefik
+      - ./traefik-dev:/etc/traefik

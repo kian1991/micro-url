@@ -1,0 +1,41 @@
+http:
+  routers:
+    shorten:
+      rule: "PathPrefix(`/shorten`)"
+      service: shorten-svc
+      entryPoints:
+        - web
+      middlewares:
+        - corsHeader
+
+    forward:
+      rule: "PathRegexp(`^/(.+)$`)"
+      service: forward-svc
+      entryPoints:
+        - web
+      middlewares:
+        - corsHeader
+
+  middlewares:
+    corsHeader:
+      headers:
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        accessControlAllowHeaders:
+          - "*"
+        accessControlAllowOriginListRegex:
+          - "^http://localhost(:[0-9]+)?$"
+        addVaryHeader: true
+
+  services:
+    shorten-svc:
+      loadBalancer:
+        servers:
+          - url: "http://shortening-service:3000"
+
+    forward-svc:
+      loadBalancer:
+        servers:
+          - url: "http://forwarding-service:3000"
