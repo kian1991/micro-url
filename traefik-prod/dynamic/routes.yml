@@ -1,26 +1,29 @@
 http:
   routers:
-    frontend:
-      rule: "Host(`app.localhost`)"
-      service: frontend-svc
-      entryPoints:
-        - web
-
     shorten:
-      rule: "Host(`api.localhost`) && PathPrefix(`/shorten`)"
+      rule: "Host(`murl.pw`) && PathPrefix(`/shorten`)"
       service: shorten-svc
       entryPoints:
         - web
       middlewares:
         - corsHeader
+      priority: 100
 
     forward:
-      rule: "Host(`localhost`) && PathRegexp(`^/(.+)$`)"
+      rule: "Host(`murl.pw`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)"
       service: forward-svc
       entryPoints:
         - web
       middlewares:
         - corsHeader
+      priority: 90
+
+    frontend:
+      rule: "Host(`murl.pw`)"
+      service: frontend-svc
+      entryPoints:
+        - web
+      priority: 10
 
   middlewares:
     corsHeader:
@@ -32,7 +35,7 @@ http:
         accessControlAllowHeaders:
           - "*"
         accessControlAllowOriginListRegex:
-          - "^http://localhost(:[0-9]+)?$"
+          - "^https?://murl\\.pw$"
         addVaryHeader: true
 
   services:
