@@ -30,6 +30,7 @@ services:
       - traefik.http.routers.shorten.priority=100
       - traefik.http.services.shorten.loadbalancer.server.port=3000
       - traefik.http.routers.shorten.middlewares=cors-header
+      - traefik.http.routers.shorten.tls=true
       - traefik.http.middlewares.cors-header.headers.accesscontrolallowmethods=GET,POST,OPTIONS
       - traefik.http.middlewares.cors-header.headers.accesscontrolallowheaders=*
       - traefik.http.middlewares.cors-header.headers.accesscontrolalloworiginlist=https://murl.pw
@@ -58,6 +59,7 @@ services:
       - traefik.http.routers.forward.priority=90
       - traefik.http.routers.forward.middlewares=cors-header
       - traefik.http.services.forward.loadbalancer.server.port=3000
+      - traefik.http.routers.forward.tls=true
 
   frontend:
     build:
@@ -74,3 +76,4 @@ services:
       - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.priority=10
       - traefik.http.services.frontend.loadbalancer.server.port=80
+      - traefik.http.routers.frontend.tls=true
