@@ -1,7 +1,13 @@
 http:
   routers:
+    frontend:
+      rule: "Host(`app.localhost`)"
+      service: frontend-svc
+      entryPoints:
+        - web
+
     shorten:
-      rule: "PathPrefix(`/shorten`)"
+      rule: "Host(`api.localhost`) && PathPrefix(`/shorten`)"
       service: shorten-svc
       entryPoints:
         - web
@@ -9,7 +15,7 @@ http:
         - corsHeader
 
     forward:
-      rule: "PathRegexp(`^/(.+)$`)"
+      rule: "Host(`localhost`) && PathRegexp(`^/(.+)$`)"
       service: forward-svc
       entryPoints:
         - web
@@ -39,3 +45,8 @@ http:
       loadBalancer:
         servers:
           - url: "http://forwarding-service:3000"
+
+    frontend-svc:
+      loadBalancer:
+        servers:
+          - url: "http://frontend:80"
