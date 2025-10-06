@@ -26,7 +26,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.shorten.rule=Host(`murl.pw`) && PathPrefix(`/shorten`)
-      - traefik.http.routers.shorten.entrypoints=web
+      - traefik.http.routers.shorten.entrypoints=websecure
       - traefik.http.routers.shorten.priority=100
       - traefik.http.services.shorten.loadbalancer.server.port=3000
       - traefik.http.routers.shorten.middlewares=cors-header
@@ -54,7 +54,7 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.forward.rule=Host(`murl.pw`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
-      - traefik.http.routers.forward.entrypoints=web
+      - traefik.http.routers.forward.entrypoints=websecure
       - traefik.http.routers.forward.priority=90
       - traefik.http.routers.forward.middlewares=cors-header
       - traefik.http.services.forward.loadbalancer.server.port=3000
@@ -71,6 +71,6 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.frontend.rule=Host(`murl.pw`)
-      - traefik.http.routers.frontend.entrypoints=web
+      - traefik.http.routers.frontend.entrypoints=websecure
       - traefik.http.routers.frontend.priority=10
       - traefik.http.services.frontend.loadbalancer.server.port=80
