@@ -1,12 +1,4 @@
 services:
-  micro-url-db:
-    image: redis:8-alpine
-    restart: unless-stopped
-    volumes:
-      - redis-data:/data
-    networks:
-      - default
-
   shortening-service:
     build:
       context: .
@@ -14,12 +6,10 @@ services:
       args:
         SERVICE: shortening-service
     restart: unless-stopped
-    depends_on:
-      - micro-url-db
     environment:
       NODE_ENV: production
       PORT: 3000
-      REDIS_URL: redis://micro-url-db:6379
+      REDIS_URL: ${REDIS_URL:?REDIS_URL not set}
       BASE_URL: https://murl.pw
     expose:
       - "3000"
@@ -47,12 +37,10 @@ services:
       args:
         SERVICE: forwarding-service
     restart: unless-stopped
-    depends_on:
-      - micro-url-db
     environment:
       NODE_ENV: production
       PORT: 3000
-      REDIS_URL: redis://micro-url-db:6379
+      REDIS_URL: ${REDIS_URL:?REDIS_URL not set}
       BASE_URL: https://murl.pw
     expose:
       - "3000"
@@ -96,8 +84,3 @@ networks:
   reverse_proxy:
     external: true
     name: dokploy-network
-
-volumes:
-  redis-data:
-    external: true
-    name: dokploy-redis-data
