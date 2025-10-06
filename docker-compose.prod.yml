@@ -52,8 +52,8 @@ services:
     depends_on:
       - forwarding-service
       - shortening-service
-    ports:
-      - "80:80"
-      - "8080:8080" # Dashboard
+    expose:
+      - "80"
+      - "8080"
     volumes:
       - ./traefik-prod:/etc/traefik
