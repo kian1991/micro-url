@@ -20,9 +20,20 @@ services:
       NODE_ENV: production
       PORT: 3000
       REDIS_URL: redis://micro-url-db:6379
-      BASE_URL: http://murl.pw
+      BASE_URL: https://murl.pw
     expose:
       - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.shorten.rule=Host(`murl.pw`) && PathPrefix(`/shorten`)
+      - traefik.http.routers.shorten.entrypoints=web
+      - traefik.http.routers.shorten.priority=100
+      - traefik.http.services.shorten.loadbalancer.server.port=3000
+      - traefik.http.routers.shorten.middlewares=cors-header
+      - traefik.http.middlewares.cors-header.headers.accesscontrolallowmethods=GET,POST,OPTIONS
+      - traefik.http.middlewares.cors-header.headers.accesscontrolallowheaders=*
+      - traefik.http.middlewares.cors-header.headers.accesscontrolalloworiginlist=https://murl.pw
+      - traefik.http.middlewares.cors-header.headers.addvaryheader=true
 
   forwarding-service:
     build:
@@ -40,32 +51,26 @@ services:
       BASE_URL: https://murl.pw
     expose:
       - "3000"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.forward.rule=Host(`murl.pw`) && PathRegexp(`^/[A-Za-z0-9_-]+$`)
+      - traefik.http.routers.forward.entrypoints=web
+      - traefik.http.routers.forward.priority=90
+      - traefik.http.routers.forward.middlewares=cors-header
+      - traefik.http.services.forward.loadbalancer.server.port=3000
 
   frontend:
     build:
       context: .
       dockerfile: Dockerfile.frontend
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://murl.pw}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://murl.pw}
     restart: unless-stopped
     expose:
       - "80"
-
-  prod-api-gateway:
-    image: traefik:v3.5.0
-    restart: unless-stopped
-    command:
-      - --api.insecure=true
-      - --providers.docker=false
-      - --providers.file.directory=/etc/traefik/dynamic
-      - --entrypoints.web.address=:80
-    depends_on:
-      - forwarding-service
-      - shortening-service
-      - frontend
-    expose:
-      - "80"
-      - "8080"
-    volumes:
-      - ./traefik-prod/traefik.yml:/etc/traefik/traefik.yml:ro
-      - ./traefik-prod/dynamic:/etc/traefik/dynamic:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.frontend.rule=Host(`murl.pw`)
+      - traefik.http.routers.frontend.entrypoints=web
+      - traefik.http.routers.frontend.priority=10
+      - traefik.http.services.frontend.loadbalancer.server.port=80
