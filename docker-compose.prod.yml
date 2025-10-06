@@ -2,10 +2,8 @@ services:
   micro-url-db:
     image: redis:8-alpine
     restart: unless-stopped
-    ports:
-      - 6379:6379
     volumes:
-      - ./redis-data:/data
+      - redis-data:/data
     networks:
       - default
 
@@ -98,3 +96,8 @@ networks:
   reverse_proxy:
     external: true
     name: dokploy-network
+
+volumes:
+  redis-data:
+    external: true
+    name: dokploy-redis-data
