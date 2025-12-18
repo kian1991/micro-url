@@ -1,0 +1,26 @@
+graph TD
+    User((Client))
+    CF[CloudFront Distribution]
+    Lambda[Lambda Edge Router]
+    S3[S3 Frontend Bucket]
+    ALB[Application Load Balancer]
+    Shortening[ECS Service: shortening]
+    Forwarding[ECS Service: forwarding]
+    Redis[(ElastiCache Redis)]
+    ECRShort[ECR Repo: shortening]
+    ECRFwd[ECR Repo: forwarding]
+    VPC[VPC + Subnets/NAT]
+    User -->|HTTPS| CF
+    CF -->|Origin-request| Lambda
+    Lambda -->|Assets| S3
+    Lambda -->|/shorten & slugs| ALB
+    ALB -->|Target Group| Shortening
+    ALB -->|Target Group| Forwarding
+    Shortening -->|Reads/Writes| Redis
+    Forwarding -->|Reads| Redis
+    Shortening -->|Image :latest| ECRShort
+    Forwarding -->|Image :latest| ECRFwd
+    ALB --- VPC
+    Redis --- VPC
+    Shortening --- VPC
+    Forwarding --- VPC
