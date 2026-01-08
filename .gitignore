@@ -1,5 +1,9 @@
 # Dev Data
 redis-data
+
+# Mac
+.DS_Store
+
 # Logs
 logs
 *.log
